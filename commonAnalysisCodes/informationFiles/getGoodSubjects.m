@@ -78,6 +78,8 @@ if strcmp(protocolType,'TFCP')
     badSSVEPSubjects = dataNotUsableTFCP;
     disp([num2str(length(badSSVEPSubjects)) ' subjects discarded for SSVEP protocol']);
     goodSubjects = setdiff(goodSubjects,badSSVEPSubjects);
+    goodSubjectsY0 = setdiff(goodSubjectsY0,badSSVEPSubjects);
+    goodSubjectsY1 = setdiff(goodSubjectsY1,badSSVEPSubjects);
 end
 end
 
