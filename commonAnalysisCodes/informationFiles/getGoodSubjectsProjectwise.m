@@ -3,7 +3,7 @@
 % ADGammaProject - healthy/MCI/AD (N=236/15/6; 9/1/0 discarded, finally - 227/14/6)
 % consistencyProject - N=48 healthy subjects and their repeats
 
-function goodSubjects = getGoodSubjectsProjectwise(subProjectName,discardNoUsefulSessionsFlag,protocolType)
+function goodSubjectsList = getGoodSubjectsProjectwise(subProjectName,discardNoUsefulSessionsFlag,protocolType)
 
 if ~exist('discardNoUsefulSessionsFlag','var'); discardNoUsefulSessionsFlag=1; end
 if ~exist('protocolType','var'); protocolType = 'SF_ORI';               end
@@ -13,6 +13,7 @@ projectName = 'ADGammaProject';
 
 if (~exist('subProjectName','var') ||  strncmpi(subProjectName,'ADGamma',7))
     % Do nothing. Return goodSubjects
+    goodSubjectsList{1} = goodSubjects;
 
 elseif strncmpi(subProjectName,'age',3)     % AgeProject - only healthy baseline
     
@@ -28,6 +29,7 @@ elseif strncmpi(subProjectName,'age',3)     % AgeProject - only healthy baseline
     end
     
     goodSubjects = goodSubjects(strcmp(goodLabels,'HV'));
+    goodSubjectsList{1} = goodSubjects;
 
 elseif strncmpi(subProjectName,'con',3)
     
@@ -49,6 +51,6 @@ elseif strncmpi(subProjectName,'con',3)
     goodSubjectsHVY1 = goodSubjectsY1(goodPos);
     
     clear goodSubjects
-    goodSubjects{1} = goodSubjectsHVY0;
-    goodSubjects{2} = goodSubjectsHVY1;
+    goodSubjectsList{1} = goodSubjectsHVY0;
+    goodSubjectsList{2} = goodSubjectsHVY1;
 end

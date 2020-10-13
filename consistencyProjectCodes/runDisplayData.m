@@ -1,8 +1,8 @@
 clear; clc;
 
 % Mandatory fixed options
-folderSourceString = '/Users/supratimray/Supratim/Projects/TLSAEEGProject';
-%folderSourceString = 'C:\Users\Supratim Ray\OneDrive - Indian Institute of Science\Supratim\Projects\TLSAEEGProject'; % Indicate the parent folder of decimatedData
+% folderSourceString = '/Users/supratimray/Supratim/Projects/TLSAEEGProject';
+folderSourceString = 'C:\Users\Supratim Ray\OneDrive - Indian Institute of Science\Supratim\Projects\TLSAEEGProject'; % Indicate the parent folder of decimatedData
 projectName = 'ADGammaProject'; % Only this dataset, which is the main TLSA dataset, is configured as of now. Other options - 'AgeProjectRound1' and 'VisualGamma' may not work
 subProjectName = 'consistencyProject';
 stRange = [0.25 0.75];

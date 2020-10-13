@@ -19,7 +19,7 @@ else
 end
 
 dataFolder = fullfile(folderSourceString,'decimatedData',projectName,protocolType);
-analyzedDataFolder = fullfile(folderSourceString,'analyzedData',projectName,protocolType);
+analyzedDataFolder = fullfile(pwd,'analyzedData',projectName,protocolType); % analysedFolder now in local project directory
 makeDirectory(analyzedDataFolder);
 
 % Analysis file

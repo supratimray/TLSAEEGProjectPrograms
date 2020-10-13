@@ -4,13 +4,17 @@
 % subjects. For example, subjectNameList{1} could contain all MCI/AD subjects
 % while subjectNameList{2} could contain all their controls.
 
-function displayAnalyzedData(folderSourceString,subjectNameLists,strList,projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,gamma1Range,gamma2Range,alphaRange)
+% Option added to send a 2D array of subjectList in which each entry is a
+% list of subjects.
+
+function displayAnalyzedData(folderSourceString,subjectNameLists,strList,projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,gamma1Range,gamma2Range,alphaRange,useMedianFlag)
 
 if ~exist('stRange','var');         stRange = [0.25 0.75];              end
 if ~exist('removeMicroSaccadesFlag','var'); removeMicroSaccadesFlag=0;  end
 if ~exist('gamma1Range','var');     gamma1Range = [20 34];              end
 if ~exist('gamma2Range','var');     gamma2Range = [36 66];              end
 if ~exist('alphaRange','var');      alphaRange = [8 12];                end
+if ~exist('useMedianFlag','var');   useMedianFlag = 1;                  end
 
 numGroups = length(subjectNameLists);
 
@@ -18,14 +22,14 @@ numGroups = length(subjectNameLists);
 timeLims = [-0.5 1.2]; freqLims = [0 100]; BLPSDLims = [-3 3];
 
 if strcmpi(protocolType,'SF_ORI')
-    cLims = [-1 1.5];
-    barLims = [-0.75 1];
+    cLims = [-2 2];
+    barLims = [-1 2];
 elseif strcmpi(protocolType,'TFCP')
     cLims = [-4 12];
     barLims = [4 10];
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%% Display Settings %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-displaySettings.fontSizeLarge = 20; displaySettings.tickLengthMedium = [0.025 0];
+displaySettings.fontSizeLarge = 10; displaySettings.tickLengthMedium = [0.025 0];
 
 if numGroups==2 % Murty's color scheme
     colormap magma;
@@ -43,11 +47,23 @@ barPosList = (barWidth/2)*(-(numGroups-1):2:(numGroups-1));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Get Data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 dataForDisplayAllGroups = cell(1,numGroups);
+nonMatchedFlag = ischar(subjectNameLists{1}{1});
 
 for i=1:numGroups
     disp(['Getting data for group: ' strList{i}]);
-    dataForDisplayAllGroups{i} = combineAnalyzedData(folderSourceString,subjectNameLists{i},projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,gamma1Range,gamma2Range,alphaRange);
+    subjectNameList = subjectNameLists{i};
+    if nonMatchedFlag
+        dataForDisplayAllGroups{i} = combineAnalyzedData(folderSourceString,subjectNameList,projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,gamma1Range,gamma2Range,alphaRange);
+    else
+        numLists = length(subjectNameList);
+        dataForDisplayAllGroupsTMP = cell(1,numLists);
+        for j=1:numLists
+            dataForDisplayAllGroupsTMP{j} = combineAnalyzedData(folderSourceString,subjectNameList{j},projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,gamma1Range,gamma2Range,alphaRange);
+        end
+        dataForDisplayAllGroups{i} = combineDataForDisplay(dataForDisplayAllGroupsTMP,0);
+    end
 end
+
 numRanges = length(dataForDisplayAllGroups{1}.rangeNames);
 
 strListDisplay = cell(1,numGroups);
@@ -78,7 +94,11 @@ for i=1:numGroups
     dataBar{i} = dataForDisplay.powerDBAllSubjects;
     
     % Time-Frequency plots
-    mTF = squeeze(median(dataForDisplay.dTFPowerDBAllSubjects,3))';
+    if useMedianFlag
+        mTF = squeeze(median(dataForDisplay.dTFPowerDBAllSubjects,3))';
+    else
+        mTF = squeeze(mean(dataForDisplay.dTFPowerDBAllSubjects,3))';
+    end
     pcolor(hDeltaTF(i),dataForDisplay.timeValsTF,dataForDisplay.freqValsTF,mTF);
     shading(hDeltaTF(i),'interp'); 
     caxis(hDeltaTF(i),cLims); 
@@ -119,7 +139,12 @@ for i=1:numGroups
     % Topoplots
     for j=1:numRanges
         axes(hTopo(i,j)); %#ok<LAXES>
-        x = squeeze(nanmedian(dataForDisplay.powerDBTopoAllSubjects(:,j,:),3));        
+        if useMedianFlag
+            x = squeeze(nanmedian(dataForDisplay.powerDBTopoAllSubjects(:,j,:),3));
+        else
+            x = squeeze(nanmean(dataForDisplay.powerDBTopoAllSubjects(:,j,:),3));
+        end
+
         x(isnan(x)) = 999;
         topoplot_murty(x,chanlocs,'electrodes','off','style','blank','drawaxis','off','nosedir',noseDir,'emarkercolors',x); 
         caxis(cLims);
@@ -130,7 +155,7 @@ for i=1:numGroups
 end
 
 % ERPs
-displayAndcompareData(hERP,dataERP,dataForDisplay.timeVals,displaySettings);
+displayAndcompareData(hERP,dataERP,dataForDisplay.timeVals,displaySettings,[],0,useMedianFlag);
 xlim(hERP,timeLims);
 set(hERP,'xTick',[0 0.8],'XTicklabel',[0 0.8]);
 xlabel(hERP,'Time (s)');
@@ -138,7 +163,8 @@ ylabel(hERP,'Voltage (\muV)');
 title(hERP,'ERP');
 
 % DeltaPSD
-displayAndcompareData(hDeltaPSD,dataDeltaPSD,dataForDisplay.freqVals,displaySettings,cLims,1);
+smoothSigma=[]; 
+displayAndcompareData(hDeltaPSD,dataDeltaPSD,dataForDisplay.freqVals,displaySettings,cLims,1,useMedianFlag,smoothSigma,nonMatchedFlag);
 axis(hDeltaPSD,[freqLims cLims]);
 makeBox(hDeltaPSD,gamma1Range,cLims,'k',1,'-','V');
 makeBox(hDeltaPSD,gamma2Range,cLims,'k',1,'--','V'); 
@@ -150,7 +176,7 @@ ylabel(hDeltaPSD,'\DeltaPower (dB)');
 title(hDeltaPSD,'Change in power');
 
 % BaselinePSD
-displayAndcompareData(hBLPSD,dataBLPSD,dataForDisplay.freqVals,displaySettings,BLPSDLims,1);
+displayAndcompareData(hBLPSD,dataBLPSD,dataForDisplay.freqVals,displaySettings,BLPSDLims,1,useMedianFlag);
 xlim(hBLPSD,freqLims);
 set(hBLPSD,'xTick',[0 50 100],'XTicklabel',[0 50 100]);
 xlabel(hBLPSD,'Frequency (Hz)');
@@ -171,13 +197,28 @@ for i=1:numRanges
         dataTMP = cat(1,dataTMP,d(:));
         groupID = cat(1,groupID,j+zeros(length(d),1));
         
-        mD = median(d); 
-        sD = std(bootstrp(10000,@median,d));
+        if useMedianFlag
+            mD = median(d);
+            sD = std(bootstrp(10000,@median,d));
+        else
+            mD = mean(d);
+            sD = std(d)/sqrt(length(d));
+        end
         errorbar(i+barPosList(j),mD,sD,'linestyle','none','marker','none','color',displaySettings.colorNames(j,:)); hold on;
         bar(i+barPosList(j),mD,barWidth,'facecolor',displaySettings.colorNames(j,:),'facealpha',0.85);
     end
-    [pD,tblD] = kruskalwallis(dataTMP',groupID','off');
-    disp([dataForDisplay.rangeNames{i} '; KW test: X2(' num2str(tblD{4,3}) ')=' num2str(round(tblD{2,5},2)) ', p=' num2str(pD)]); 
+
+    if useMedianFlag
+        [pD,tblD] = kruskalwallis(dataTMP',groupID','off');
+        disp([dataForDisplay.rangeNames{i} '; KW test: X2(' num2str(tblD{4,3}) ')=' num2str(round(tblD{2,5},2)) ', p=' num2str(pD)]);
+    else
+        if nonMatchedFlag
+            [~,pD,~,stats] = ttest2(dataBar{1}(:,i),dataBar{2}(:,i));
+        else
+            [~,pD,~,stats] = ttest(dataBar{1}(:,i),dataBar{2}(:,i));
+        end
+        disp([dataForDisplay.rangeNames{i} '; t-test: tstat(' num2str(stats.df) ')=' num2str(round(stats.tstat,2)) ', p=' num2str(pD)]);
+    end
 end
 
 axis([0 numRanges+1 barLims]);
@@ -186,19 +227,41 @@ set(gca,'xTick',1:numRanges,'xTicklabel',dataForDisplay.rangeNames);
 set(gca,'fontsize',displaySettings.fontSizeLarge,'TickDir','out','TickLength',displaySettings.tickLengthMedium);
 
 end
-
-function displayAndcompareData(hPlot,data,xs,displaySettings,yLims,displaySignificanceFlag)
+function displayAndcompareData(hPlot,data,xs,displaySettings,yLims,displaySignificanceFlag,useMedianFlag,smoothSigma,nonMatchedFlag)
 
 if ~exist('displaySignificanceFlag','var'); displaySignificanceFlag=0;  end
+if ~exist('useMedianFlag','var');           useMedianFlag=1;            end
+if ~exist('smoothSigma','var');             smoothSigma=[];             end
+if ~exist('nonMatchedFlag','var');          nonMatchedFlag=1;           end
 
-getLoc = @(g)(squeeze(median(g,1)));
+if useMedianFlag
+    getLoc = @(g)(squeeze(median(g,1)));
+else
+    getLoc = @(g)(squeeze(mean(g,1)));
+end
+
 numGroups = length(data);
+
+if ~isempty(smoothSigma)
+    windowLen = 5*smoothSigma;
+    window = exp(-0.5*(((1:windowLen) - (windowLen+1)/2)/smoothSigma).^2);
+    window = window/sum(window); %sqrt(sum(window.^2));
+    
+    for i=1:numGroups
+        data{i} = convn(data{i},window,'same');
+    end
+end
 
 axes(hPlot);
 for i=1:numGroups
     clear bootStat mData sData
-    bootStat = bootstrp(1000,getLoc,data{i});
-    mData = getLoc(data{i}); sData = std(bootStat);
+    mData = getLoc(data{i}); 
+    if useMedianFlag
+        bootStat = bootstrp(1000,getLoc,data{i});
+        sData = std(bootStat);
+    else
+        sData = std(data{i},[],1)/sqrt(size(data{i},1));
+    end
     
     patch([xs';flipud(xs')],[mData'-sData';flipud(mData'+sData')],displaySettings.colorNames(i,:),'linestyle','none','FaceAlpha',0.4);
     hold on;
@@ -208,7 +271,7 @@ end
 set(gca,'fontsize',displaySettings.fontSizeLarge);
 set(gca,'TickDir','out','TickLength',displaySettings.tickLengthMedium);
 
-if exist('yLims','var')
+if exist('yLims','var') && ~isempty(yLims)
     ylim(yLims);
 else
     yLims = ylim;
@@ -224,8 +287,15 @@ if displaySignificanceFlag % Do significance Testing
     end
        
    for i=1:length(xs)
-       p=kruskalwallis(allData(:,i),allIDs,'off');
-       
+       if useMedianFlag
+           p=kruskalwallis(allData(:,i),allIDs,'off');
+       else
+           if nonMatchedFlag
+               [~,p]=ttest2(data{1}(:,i),data{2}(:,i)); % only tests 2 groups
+           else
+               [~,p]=ttest(data{1}(:,i),data{2}(:,i)); % only tests 2 groups
+           end
+       end
        % Get patch coordinates
        yVals = yLims(1)+[0 0 diff(yLims)/20 diff(yLims)/20];
        
@@ -252,7 +322,6 @@ if displaySignificanceFlag % Do significance Testing
    end
 end
 end
-
 function chanlocs = getMontageDetails(refType)
 
 capLayout = 'actiCap64';
@@ -264,5 +333,35 @@ switch refType
     case 'bipolar'
         cL = load(['bipolarChanlocs' capLayout '.mat']);
         chanlocs = cL.eloc;
+end
+end
+function Y = combineDataForDisplay(X,useMedianFlag)
+N = length(X);
+
+Y = X{1};
+
+Y.erpData=[];
+Y.logBLPowerVsFreqAllSubjects=[];
+Y.logSTPowerVsFreqAllSubjects=[];
+Y.powerDBAllSubjects=[];
+Y.dTFPowerDBAllSubjects=[];
+Y.powerDBTopoAllSubjects=[];
+
+for i=1:N
+    if useMedianFlag
+        Y.erpData(i,:) = median(X{i}.erpData,1);
+        Y.logBLPowerVsFreqAllSubjects(i,:) = median(X{i}.logBLPowerVsFreqAllSubjects,1);
+        Y.logSTPowerVsFreqAllSubjects(i,:) = median(X{i}.logSTPowerVsFreqAllSubjects,1);
+        Y.powerDBAllSubjects(i,:) = median(X{i}.powerDBAllSubjects,1);
+        Y.dTFPowerDBAllSubjects(:,:,i) = squeeze(median(X{i}.dTFPowerDBAllSubjects,3));
+        Y.powerDBTopoAllSubjects(:,:,i) = squeeze(nanmedian(X{i}.powerDBTopoAllSubjects,3));
+    else
+        Y.erpData(i,:) = mean(X{i}.erpData,1);
+        Y.logBLPowerVsFreqAllSubjects(i,:) = mean(X{i}.logBLPowerVsFreqAllSubjects,1);
+        Y.logSTPowerVsFreqAllSubjects(i,:) = mean(X{i}.logSTPowerVsFreqAllSubjects,1);
+        Y.powerDBAllSubjects(i,:) = mean(X{i}.powerDBAllSubjects,1);
+        Y.dTFPowerDBAllSubjects(:,:,i) = squeeze(mean(X{i}.dTFPowerDBAllSubjects,3));
+        Y.powerDBTopoAllSubjects(:,:,i) = squeeze(nanmean(X{i}.powerDBTopoAllSubjects,3));
+    end
 end
 end

@@ -1,7 +1,7 @@
 % This program provides details of the number of subjects and usable
 % blocks, using data stored in analysedData.
 
-function subjectsWithAnalyzableBlocks = getSubjectAndBlocksStatistics(folderSourceString,protocolType,subProjectName)
+function subjectsWithAnalyzableBlocks = getSubjectAndBlocksStatistics(protocolType,subProjectName)
 
 if ~exist('protocolType','var');     protocolType = 'SF_ORI';           end
 
@@ -12,7 +12,7 @@ if ~exist('subProjectName','var')
     subProjectName = projectName;
 end
 
-analyzedDataFolder = fullfile(folderSourceString,'analyzedData',projectName,protocolType);
+analyzedDataFolder = fullfile(pwd,'analyzedData',projectName,protocolType);
 
 subjectNamesList = getGoodSubjectsProjectwise(subProjectName,1,protocolType);
 numSubjectList = length(subjectNamesList);
