@@ -52,6 +52,5 @@ for i=1:numValidCases
     subjectNameListMatched{2}{i} = caseList(casesWithControls(i));
 end
 
-%getSubjectAndBlocksStatistics(folderSourceString,protocolType);
-stRange = [0.25 0.75]; gamma1Range = [24 34]; gamma2Range = [36 66]; alphaRange = [8 12];
+stRange = [0.25 0.75]; gamma1Range = [20 34]; gamma2Range = [36 66]; alphaRange = [8 12];
 displayAnalyzedData(pwd,subjectNameListMatched,strList,projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,gamma1Range,gamma2Range,alphaRange,1); % Save data in analyzedData

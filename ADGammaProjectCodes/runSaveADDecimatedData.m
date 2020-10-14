@@ -1,20 +1,14 @@
-% Modified from the program written by Murty Dinavahi (MD)
-
-% Data avalable in the decimatedData folder needs to be properly extracted
-% for analysis. This program extracts the part that is used for final
-% analysis and saves it under analyzedData.
+% This program simply saves the DecimatedData for the ADGammaProject cases
+% and control subjects only
 
 clear; clc;
 
 % Mandatory fixed options
 folderSourceString = 'C:\Users\Supratim Ray\OneDrive - Indian Institute of Science\Supratim\Projects\TLSAEEGProject'; % Indicate the parent folder of decimatedData
-projectName = 'ADGammaProject'; % Only this dataset, which is the main TLSA dataset, is configured as of now. Other options - 'AgeProjectRound1' and 'VisualGamma' may not work
-stRange = [0.25 0.75];
+folderDestinationString = 'C:\Users\Supratim Ray\Desktop';
 
-% Choose one of these options
-refType = 'bipolar'; % 'unipolar' % Set reference type here.
+projectName = 'ADGammaProject'; % Only this dataset, which is the main TLSA dataset, is configured as of now. Other options - 'AgeProjectRound1' and 'VisualGamma' may not work
 protocolType = 'SF_ORI'; % 'TFCP'; % SF_ORI for gamma, TFCP for SSVEP
-removeMicroSaccadesFlag = 0; % 0 or 1.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Subjects %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 goodSubjectsList = getGoodSubjectsProjectwise(projectName);
@@ -46,8 +40,21 @@ subjectNameList{2} = caseList; strList{2} = 'Cases';
 
 goodSubjectsAll = [subjectNameList{1} subjectNameList{2}];
 
+dataFolderIn = fullfile(folderSourceString,'decimatedData',projectName,protocolType);
+dataFolderOut = fullfile(folderDestinationString,'decimatedData',projectName,protocolType);
+makeDirectory(dataFolderOut);
+
 for iSub = 1:length(goodSubjectsAll)
     subjectName = goodSubjectsAll{iSub};
     disp([num2str(iSub) ': ' subjectName]);
-    analyseAndSaveValuesIndividualSubject(folderSourceString,subjectName,projectName,refType,protocolType,stRange,removeMicroSaccadesFlag); % Save data in analyzedData
+
+    [expDates,protocolNames,capLayout,usableDataFlag] = getProtocolDetailsForAnalysis(projectName,subjectName,protocolType);
+
+    if usableDataFlag && ~isempty(expDates)
+        for iProt = 1:length(expDates)
+            fileNameToCopy = fullfile(dataFolderIn,[subjectName '-' expDates{iProt} '-' protocolNames{iProt} '.mat']);
+            fileNameDestination = fullfile(dataFolderOut,[subjectName '-' expDates{iProt} '-' protocolNames{iProt} '.mat']);
+            copyfile(fileNameToCopy,fileNameDestination);
+        end
+    end
 end
