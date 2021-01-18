@@ -25,10 +25,10 @@ timeLims = [-0.5 1.2]; freqLims = [0 100]; BLPSDLims = [-3 3];
 
 if strcmpi(protocolType,'SF_ORI')
     cLims = [-2 2];
-    barLims = [-1 2];
+    %barLims = [-1 2];
 elseif strcmpi(protocolType,'TFCP')
     cLims = [-4 12];
-    barLims = [4 10];
+    %barLims = [4 10];
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%% Display Settings %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 displaySettings.fontSizeLarge = 10; displaySettings.tickLengthMedium = [0.025 0];
@@ -210,7 +210,18 @@ for i=1:numRanges
         bar(i+barPosList(j),mD,barWidth,'facecolor',displaySettings.colorNames(j,:),'facealpha',0.85);
         
         % Plot individual data points
-        scatter(i+barPosList(j) + zeros(1,length(d)),d,30,[0.5 0.5 0.5]);
+        scatter(i+barPosList(j) + zeros(1,length(d)),d,1,[0.5 0.5 0.5]);
+    end
+    
+    if ~nonMatchedFlag
+        numDataPoints = size(dataBar{1},1);
+        for j=1:numDataPoints
+            dataPointsToConnect = zeros(1,numGroups);
+            for k=1:numGroups
+                dataPointsToConnect(k) = dataBar{k}(j,i);
+            end
+            plot(i+barPosList,dataPointsToConnect,'color',[0.5 0.5 0.5]);
+        end
     end
 
     if useMedianFlag
@@ -226,7 +237,8 @@ for i=1:numRanges
     end
 end
 
-axis([0 numRanges+1 barLims]);
+xlim([0 numRanges+1]);
+% axis([0 numRanges+1 barLims]);
 ylabel('\DeltaPower (dB)');
 set(gca,'xTick',1:numRanges,'xTicklabel',dataForDisplay.rangeNames);
 set(gca,'fontsize',displaySettings.fontSizeLarge,'TickDir','out','TickLength',displaySettings.tickLengthMedium);
