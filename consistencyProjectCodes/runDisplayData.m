@@ -2,7 +2,7 @@ clear; clc;
 
 % Mandatory fixed options
 % folderSourceString = '/Users/supratimray/Supratim/Projects/TLSAEEGProject';
-folderSourceString = 'C:\Users\Supratim Ray\OneDrive - Indian Institute of Science\Supratim\Projects\TLSAEEGProject'; % Indicate the parent folder of decimatedData
+folderSourceString = 'D:\OneDrive - Indian Institute of Science\Supratim\Projects\TLSAEEGProject'; % Indicate the parent folder of decimatedData
 projectName = 'ADGammaProject'; % Only this dataset, which is the main TLSA dataset, is configured as of now. Other options - 'AgeProjectRound1' and 'VisualGamma' may not work
 subProjectName = 'consistencyProject';
 stRange = [0.25 0.75];
@@ -13,7 +13,7 @@ protocolType = 'SF_ORI'; % 'TFCP'; % SF_ORI for gamma, TFCP for SSVEP
 removeMicroSaccadesFlag = 0; % 0 or 1.
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Get Data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-subjectsWithAnalyzableBlocks = getSubjectAndBlocksStatistics(folderSourceString,protocolType,subProjectName);
+subjectsWithAnalyzableBlocks = getSubjectAndBlocksStatistics(protocolType,subProjectName);
 numGroups = length(subjectsWithAnalyzableBlocks);
 ageList = cell(1,numGroups);
 genderList = cell(1,numGroups);
@@ -28,7 +28,7 @@ for i=1:numGroups
     end
     uniqueSubjectNumbers{i} = uSN;
     [ageList{i},genderList{i},~,expDateList{i}] = getDemographicDetails(projectName,uniqueSubjectNames);
-    dataForDisplay{i} = combineAnalyzedData(folderSourceString,uniqueSubjectNames,projectName,refType,protocolType,stRange);
+    dataForDisplay{i} = combineAnalyzedData(pwd,uniqueSubjectNames,projectName,refType,protocolType,stRange);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%% Matched subjects %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

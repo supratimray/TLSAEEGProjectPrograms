@@ -1,8 +1,9 @@
-function [allProtocolsBLData,stPowerVsFreq,blPowerVsFreq,freqVals,tfPower,timeValsTF,freqValsTF,erp,timeVals,numGoodTrials,numAnalysedElecs]=getDataSingleSubject(cleanDataFolder,fileLists,capType,electrodeList,stRange,TFFlag,numMSInRangePerProtocol,condVals,params,discardBadElecFlag)
+function [allProtocolsBLData,stPowerVsFreq,blPowerVsFreq,freqVals,tfPower,timeValsTF,freqValsTF,erp,timeVals,numGoodTrials,numAnalysedElecs]=getDataSingleSubject(cleanDataFolder,fileLists,capType,electrodeList,stRange,TFFlag,numMSInRangePerProtocol,condVals,params,discardBadElecFlag,spatialFrequenciesToRemove)
 
 if ~exist('TFFlag','var') || isempty(TFFlag); TFFlag= 1; end
 if ~exist('stRange','var') || isempty(stRange); stRange = [0.25 0.75]; end
 if ~exist('params','var'); params=[]; end
+if ~exist('spatialFrequenciesToRemove','var'); spatialFrequenciesToRemove=[];  end
 
 if exist('numMSInRangePerProtocol','var') && ~isempty(numMSInRangePerProtocol)
     if length(numMSInRangePerProtocol)~=length(fileLists); error('Remove bad protocols first...'); end
@@ -55,7 +56,19 @@ for iProt = 1:length(fileLists)
         trialConditionVals(msTrials) = [];
     end
     
-    if exist('condVals','var') && ~isempty(condVals); eegData(:,~ismember(trialConditionVals,condVals),:) = []; end
+    if exist('condVals','var') && ~isempty(condVals)
+        eegData(:,~ismember(trialConditionVals,condVals),:) = []; % This only works for TFCP protocols
+    else
+        if ~isempty(spatialFrequenciesToRemove)
+            allSFs = trialConditionVals(:,1);
+            badSFPos = [];
+            for i=1:length(spatialFrequenciesToRemove)
+                badSFPos = cat(1,badSFPos,find(spatialFrequenciesToRemove(i)==allSFs));
+            end
+            eegData(:,badSFPos,:)=[];
+        end
+    end
+
     if all(goodSideFlag)
         goodProtFlag(iLoop)=true; 
     else

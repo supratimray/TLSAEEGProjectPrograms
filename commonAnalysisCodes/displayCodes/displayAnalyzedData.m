@@ -7,7 +7,7 @@
 % Option added to send a 2D array of subjectList in which each entry is a
 % list of subjects.
 
-function displayAnalyzedData(folderSourceString,subjectNameLists,strList,projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,gamma1Range,gamma2Range,alphaRange,useMedianFlag)
+function displayAnalyzedData(folderSourceString,subjectNameLists,strList,projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,gamma1Range,gamma2Range,alphaRange,useMedianFlag,spatialFrequenciesToRemove,useCleanData)
 
 if ~exist('stRange','var');         stRange = [0.25 0.75];              end
 if ~exist('removeMicroSaccadesFlag','var'); removeMicroSaccadesFlag=0;  end
@@ -15,6 +15,8 @@ if ~exist('gamma1Range','var');     gamma1Range = [20 34];              end
 if ~exist('gamma2Range','var');     gamma2Range = [36 66];              end
 if ~exist('alphaRange','var');      alphaRange = [8 12];                end
 if ~exist('useMedianFlag','var');   useMedianFlag = 1;                  end
+if ~exist('spatialFrequenciesToRemove','var'); spatialFrequenciesToRemove=[];  end
+if ~exist('useCleanData','var');    useCleanData=0;                     end
 
 numGroups = length(subjectNameLists);
 
@@ -53,12 +55,12 @@ for i=1:numGroups
     disp(['Getting data for group: ' strList{i}]);
     subjectNameList = subjectNameLists{i};
     if nonMatchedFlag
-        dataForDisplayAllGroups{i} = combineAnalyzedData(folderSourceString,subjectNameList,projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,gamma1Range,gamma2Range,alphaRange);
+        dataForDisplayAllGroups{i} = combineAnalyzedData(folderSourceString,subjectNameList,projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,gamma1Range,gamma2Range,alphaRange,spatialFrequenciesToRemove,useCleanData);
     else
         numLists = length(subjectNameList);
         dataForDisplayAllGroupsTMP = cell(1,numLists);
         for j=1:numLists
-            dataForDisplayAllGroupsTMP{j} = combineAnalyzedData(folderSourceString,subjectNameList{j},projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,gamma1Range,gamma2Range,alphaRange);
+            dataForDisplayAllGroupsTMP{j} = combineAnalyzedData(folderSourceString,subjectNameList{j},projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,gamma1Range,gamma2Range,alphaRange,spatialFrequenciesToRemove,useCleanData);
         end
         dataForDisplayAllGroups{i} = combineDataForDisplay(dataForDisplayAllGroupsTMP,0);
     end
@@ -122,20 +124,7 @@ for i=1:numGroups
     
     set(hDeltaTF(i),'yTick',[0 50 100],'YTicklabel',[0 50 100]);
     ylabel(hDeltaTF(i),'Frequency (Hz)');
-    
-    % Set Colorbar
-    tmpPos = get(hDeltaTF(i),'Position');
-    cbPos = [tmpPos(1)+tmpPos(3)+0.015 tmpPos(2) 0.015 tmpPos(4)];
-    hCB = colorbar('Position',cbPos,'Limits',cLims);
-    
-    set(hCB,'ydir','normal','box','off');
-    set(hCB,'xtick',[],'ytick',[cLims(1) 0 cLims(2)],'yticklabel',[cLims(1) 0 cLims(2)]);
-    set(hCB,'yaxislocation','right');
-    %ylabel(hCB,'dB');
-    set(hCB,'fontsize',displaySettings.fontSizeLarge,'TickDir','out','TickLength',displaySettings.tickLengthMedium(1));
-    
-    title(hDeltaTF(i),strListDisplay{i},'color',displaySettings.colorNames(i,:));
-    
+
     % Topoplots
     for j=1:numRanges
         axes(hTopo(i,j)); %#ok<LAXES>
@@ -152,6 +141,19 @@ for i=1:numGroups
             title(dataForDisplay.rangeNames{j},'fontsize',displaySettings.fontSizeLarge);
         end
     end
+    
+    % Set Colorbar
+    tmpPos = get(hDeltaTF(i),'Position');
+    cbPos = [tmpPos(1)+tmpPos(3)+0.015 tmpPos(2) 0.015 tmpPos(4)];
+    hCB = colorbar('Position',cbPos,'Limits',cLims);
+    
+    set(hCB,'ydir','normal','box','off');
+    set(hCB,'xtick',[],'ytick',[cLims(1) 0 cLims(2)],'yticklabel',[cLims(1) 0 cLims(2)]);
+    set(hCB,'yaxislocation','right');
+    %ylabel(hCB,'dB');
+    set(hCB,'fontsize',displaySettings.fontSizeLarge,'TickDir','out','TickLength',displaySettings.tickLengthMedium(1));
+    
+    title(hDeltaTF(i),strListDisplay{i},'color',displaySettings.colorNames(i,:));
 end
 
 % ERPs
@@ -206,6 +208,9 @@ for i=1:numRanges
         end
         errorbar(i+barPosList(j),mD,sD,'linestyle','none','marker','none','color',displaySettings.colorNames(j,:)); hold on;
         bar(i+barPosList(j),mD,barWidth,'facecolor',displaySettings.colorNames(j,:),'facealpha',0.85);
+        
+        % Plot individual data points
+        scatter(i+barPosList(j) + zeros(1,length(d)),d,30,[0.5 0.5 0.5]);
     end
 
     if useMedianFlag

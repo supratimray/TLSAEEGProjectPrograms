@@ -4,13 +4,15 @@ clear; clc;
 
 % Mandatory fixed options
 % folderSourceString = 'Users/supratimray/Supratim/Projects/TLSAEEGProject';
-folderSourceString = 'C:\Users\Supratim Ray\OneDrive - Indian Institute of Science\Supratim\Projects\TLSAEEGProject'; % Indicate the parent folder of decimatedData
+folderSourceString = 'D:\OneDrive - Indian Institute of Science\Supratim\Projects\TLSAEEGProject'; % Indicate the parent folder of decimatedData
 projectName = 'ADGammaProject'; % Only this dataset, which is the main TLSA dataset, is configured as of now. Other options - 'AgeProjectRound1' and 'VisualGamma' may not work
 
 % Choose one of these options
 refType = 'bipolar'; % 'unipolar' % Set reference type here.
 protocolType = 'SF_ORI'; % 'TFCP'; % SF_ORI for gamma, TFCP for SSVEP
 removeMicroSaccadesFlag = 0; % 0 or 1.
+spatialFrequenciesToRemove = 1;
+useCleanData = 1; % cleanData refers to the data before decimation.
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% All Subjects %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 subjectsWithAnalyzableBlocks = getSubjectAndBlocksStatistics(protocolType);
@@ -53,4 +55,4 @@ for i=1:numValidCases
 end
 
 stRange = [0.25 0.75]; gamma1Range = [20 34]; gamma2Range = [36 66]; alphaRange = [8 12];
-displayAnalyzedData(pwd,subjectNameListMatched,strList,projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,gamma1Range,gamma2Range,alphaRange,1); % Save data in analyzedData
+displayAnalyzedData(pwd,subjectNameListMatched,strList,projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,gamma1Range,gamma2Range,alphaRange,1,spatialFrequenciesToRemove,useCleanData); % Save data in analyzedData

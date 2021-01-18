@@ -1,12 +1,15 @@
 % This program combines analyzedData across subjects
 
-function dataForDisplay = combineAnalyzedData(folderSourceString,subjectNameList,projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,gamma1Range,gamma2Range,alphaRange)
+function dataForDisplay = combineAnalyzedData(folderSourceString,subjectNameList,projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,gamma1Range,gamma2Range,alphaRange,spatialFrequenciesToRemove,useCleanData)
 
 if ~exist('stRange','var');         stRange = [0.25 0.75];              end
 if ~exist('removeMicroSaccadesFlag','var'); removeMicroSaccadesFlag=0;  end
 if ~exist('gamma1Range','var');     gamma1Range = [20 34];              end
 if ~exist('gamma2Range','var');     gamma2Range = [36 66];              end
 if ~exist('alphaRange','var');      alphaRange = [8 12];                end
+if ~exist('spatialFrequenciesToRemove','var'); spatialFrequenciesToRemove=[];  end
+if ~exist('useCleanData','var');    useCleanData=0;                     end
+
 SSVEPFreqHz = 32;
 
 analyzedDataFolder = fullfile(folderSourceString,'analyzedData',projectName,protocolType);
@@ -27,11 +30,24 @@ for iSub = 1:numSubjects
     % Analysis Input file
     if removeMicroSaccadesFlag
         analysisDetailsInputFile = fullfile(analyzedDataFolder,[subjectName '_' refType ...
-            '_stRange_' num2str(1000*stRange(1)) '_' num2str(1000*stRange(2)) '_NoMS.mat']);
+            '_stRange_' num2str(1000*stRange(1)) '_' num2str(1000*stRange(2)) '_NoMS']);
     else
         analysisDetailsInputFile = fullfile(analyzedDataFolder,[subjectName '_' refType ...
-            '_stRange_' num2str(1000*stRange(1)) '_' num2str(1000*stRange(2)) '.mat']);
+            '_stRange_' num2str(1000*stRange(1)) '_' num2str(1000*stRange(2))]);
     end
+    
+    if ~isempty(spatialFrequenciesToRemove)
+        analysisDetailsInputFile = cat(2,analysisDetailsInputFile,'_RemoveSF');
+        for i=1:length(spatialFrequenciesToRemove)
+            analysisDetailsInputFile = cat(2,analysisDetailsInputFile,num2str(spatialFrequenciesToRemove(i)));
+        end
+    end
+    
+    if useCleanData
+        analysisDetailsInputFile = cat(2,analysisDetailsInputFile,'_CleanData');
+    end
+
+    analysisDetailsInputFile = cat(2,analysisDetailsInputFile,'.mat');
     
     if ~isfile(analysisDetailsInputFile)
         disp(['fileName for subject ' subjectName ' does not exist']);
