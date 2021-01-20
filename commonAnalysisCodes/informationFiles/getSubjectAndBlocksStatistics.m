@@ -19,7 +19,7 @@ numSubjectList = length(subjectNamesList);
 subjectsWithAnalyzableBlocks = cell(1,numSubjectList);
 for i=1:numSubjectList
     subjectNames = getGoodFileNamesForSubjects(subjectNamesList{i});
-    [allProts,allSubjectIDs] = getProtsAndSubjectIDs(subjectNames,analyzedDataFolder);
+    [allProts,allSubjectIDs] = getProtsAndSubjectIDs(subjectNames,analyzedDataFolder,protocolType);
 
     disp(['Protocol Type: ' protocolType]);
     disp(['Total number of subjects: ' num2str(length(subjectNames))]);
@@ -33,7 +33,7 @@ for i=1:numSubjectList
 end
 end
 
-function [allProts,allSubjectIDs,allNumTrials] = getProtsAndSubjectIDs(subjectNames,analyzedDataFolder)
+function [allProts,allSubjectIDs,allNumTrials] = getProtsAndSubjectIDs(subjectNames,analyzedDataFolder,protocolType)
 
 stRange = [0.25 0.75];
 refType = 'bipolar'; % 'unipolar' % Set reference type here.
@@ -45,9 +45,8 @@ allNumTrials = [];
 for iSub = 1:length(subjectNames)
     subjectName = subjectNames{iSub};
     
-    analysisDetailsFile = fullfile(analyzedDataFolder,[subjectName '_' refType ...
-        '_stRange_' num2str(1000*stRange(1)) '_' num2str(1000*stRange(2)) '.mat']);
-    
+    analysisDetailsFile = getAnalysisDetailsFile(analyzedDataFolder,subjectName,refType,protocolType,stRange,0,1,1,16);
+
     if exist(analysisDetailsFile,'file')
         x=load(analysisDetailsFile);
         p = [x.allProtocolsBLData.goodProtFlag];

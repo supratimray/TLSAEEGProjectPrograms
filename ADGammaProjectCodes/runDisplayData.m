@@ -13,7 +13,7 @@ protocolType = 'SF_ORI'; % SF_ORI for gamma, TFCP for SSVEP
 removeMicroSaccadesFlag = 0; % 0 or 1.
 spatialFrequenciesToRemove = 1;
 useCleanData = 1; % cleanData refers to the data before decimation.
-temporalFrequencyToUse = 0; % Only used for TFCP protocol
+temporalFrequencyToUse = 16; % Only used for TFCP protocol
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% All Subjects %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 subjectsWithAnalyzableBlocks = getSubjectAndBlocksStatistics(protocolType);
@@ -25,6 +25,9 @@ ageLim = 1;
 healthyPos = strcmp(cdrList,'HV');
 casePos = strcmp(cdrList,'MCI'); % 'MCI' for Fig2, 'AD' for Fig3, ~healthyPos for Fig3Sup2
 caseList = setdiff(uniqueSubjectNames(casePos),[{'217SK'} {'225SK'}]);
+
+%caseList = setdiff(caseList,[{'014SM'} {'089JL'}]); % Subjects with negative SG
+%caseList = setdiff(caseList,{'154AP_F1'}); % Subject with negative FG
 
 controlList = []; controlListCaseNumber = [];
 for i=1:length(caseList)

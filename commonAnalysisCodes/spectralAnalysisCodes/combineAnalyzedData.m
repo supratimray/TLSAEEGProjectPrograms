@@ -29,30 +29,7 @@ for iSub = 1:numSubjects
     subjectName = subjectNameList{iSub};
     
     % Analysis Input file
-    if removeMicroSaccadesFlag
-        analysisDetailsInputFile = fullfile(analyzedDataFolder,[subjectName '_' refType ...
-            '_stRange_' num2str(1000*stRange(1)) '_' num2str(1000*stRange(2)) '_NoMS']);
-    else
-        analysisDetailsInputFile = fullfile(analyzedDataFolder,[subjectName '_' refType ...
-            '_stRange_' num2str(1000*stRange(1)) '_' num2str(1000*stRange(2))]);
-    end
-    
-    if ~isempty(spatialFrequenciesToRemove) && ~strcmp(protocolType,'TFCP')
-        analysisDetailsInputFile = cat(2,analysisDetailsInputFile,'_RemoveSF');
-        for i=1:length(spatialFrequenciesToRemove)
-            analysisDetailsInputFile = cat(2,analysisDetailsInputFile,num2str(spatialFrequenciesToRemove(i)));
-        end
-    end
-    
-    if useCleanData
-        analysisDetailsInputFile = cat(2,analysisDetailsInputFile,'_CleanData');
-    end
-
-    if strcmp(protocolType,'TFCP') && (temporalFrequencyToUse==0)
-        analysisDetailsInputFile = cat(2,analysisDetailsInputFile,'_Static');
-    end
-
-    analysisDetailsInputFile = cat(2,analysisDetailsInputFile,'.mat');
+    analysisDetailsInputFile = getAnalysisDetailsFile(analyzedDataFolder,subjectName,refType,protocolType,stRange,removeMicroSaccadesFlag,spatialFrequenciesToRemove,useCleanData,temporalFrequencyToUse);
     
     if ~isfile(analysisDetailsInputFile)
         disp(['fileName for subject ' subjectName ' does not exist']);
