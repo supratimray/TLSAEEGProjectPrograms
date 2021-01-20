@@ -9,10 +9,11 @@ projectName = 'ADGammaProject'; % Only this dataset, which is the main TLSA data
 
 % Choose one of these options
 refType = 'bipolar'; % 'unipolar' % Set reference type here.
-protocolType = 'SF_ORI'; % 'TFCP'; % SF_ORI for gamma, TFCP for SSVEP
+protocolType = 'SF_ORI'; % SF_ORI for gamma, TFCP for SSVEP
 removeMicroSaccadesFlag = 0; % 0 or 1.
 spatialFrequenciesToRemove = 1;
 useCleanData = 1; % cleanData refers to the data before decimation.
+temporalFrequencyToUse = 0; % Only used for TFCP protocol
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% All Subjects %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 subjectsWithAnalyzableBlocks = getSubjectAndBlocksStatistics(protocolType);
@@ -22,7 +23,7 @@ uniqueSubjectNames = getGoodFileNamesForSubjects(subjectsWithAnalyzableBlocks{1}
 
 ageLim = 1;
 healthyPos = strcmp(cdrList,'HV');
-casePos = strcmp(cdrList,'MCI'); %~healthyPos;
+casePos = strcmp(cdrList,'MCI'); % 'MCI' for Fig2, 'AD' for Fig3, ~healthyPos for Fig3Sup2
 caseList = setdiff(uniqueSubjectNames(casePos),[{'217SK'} {'225SK'}]);
 
 controlList = []; controlListCaseNumber = [];
@@ -54,5 +55,8 @@ for i=1:numValidCases
     subjectNameListMatched{2}{i} = caseList(casesWithControls(i));
 end
 
+% maxNumberOfControls=5;
+% subjectNameListMatched = getNewControlSubjectList(projectName,subjectNameListMatched,maxNumberOfControls);
+
 stRange = [0.25 0.75]; gamma1Range = [20 34]; gamma2Range = [36 66]; alphaRange = [8 12];
-displayAnalyzedData(pwd,subjectNameListMatched,strList,projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,gamma1Range,gamma2Range,alphaRange,1,spatialFrequenciesToRemove,useCleanData); % Save data in analyzedData
+displayAnalyzedData(pwd,subjectNameListMatched,strList,projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,gamma1Range,gamma2Range,alphaRange,1,spatialFrequenciesToRemove,useCleanData,temporalFrequencyToUse); % Save data in analyzedData

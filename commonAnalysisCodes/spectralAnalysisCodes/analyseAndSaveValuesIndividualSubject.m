@@ -3,7 +3,7 @@
 % generate all plots 
 % Call this function from runAnalyseAndSaveValuesIndividualSubject.m
 
-function analyseAndSaveValuesIndividualSubject(folderSourceString,subjectName,projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,spatialFrequenciesToRemove,useCleanData)
+function analyseAndSaveValuesIndividualSubject(folderSourceString,subjectName,projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,spatialFrequenciesToRemove,useCleanData,temporalFrequencyToUse)
 
 if ~exist('stRange','var');         stRange = [0.25 0.75];              end
 if ~exist('removeMicroSaccadesFlag','var'); removeMicroSaccadesFlag=0;  end
@@ -15,7 +15,11 @@ if ~exist('useCleanData','var');    useCleanData=0;                     end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if strcmp(protocolType,'TFCP')
-    condVals=16; % SSEVEPFreq/2
+    if ~exist('temporalFrequencyToUse','var') || isempty(temporalFrequencyToUse)
+        condVals=16; % SSEVEPFreq/2
+    else
+        condVals=temporalFrequencyToUse;
+    end
 else
     condVals=[];
 end
@@ -40,7 +44,7 @@ else
     numMSInRangePerProtocol = [];
 end
 
-if ~isempty(spatialFrequenciesToRemove)
+if ~isempty(spatialFrequenciesToRemove) && ~strcmp(protocolType,'TFCP')
     analysisDetailsFile = [analysisDetailsFile '_RemoveSF'];
     for i=1:length(spatialFrequenciesToRemove)
         analysisDetailsFile = cat(2,analysisDetailsFile,num2str(spatialFrequenciesToRemove(i)));
@@ -49,6 +53,10 @@ end
 
 if useCleanData
     analysisDetailsFile = cat(2,analysisDetailsFile,'_CleanData');
+end
+
+if strcmp(protocolType,'TFCP') && (condVals==0)
+    analysisDetailsFile = cat(2,analysisDetailsFile,'_Static');
 end
 
 analysisDetailsFile = [analysisDetailsFile '.mat'];

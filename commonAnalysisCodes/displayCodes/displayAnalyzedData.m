@@ -7,7 +7,7 @@
 % Option added to send a 2D array of subjectList in which each entry is a
 % list of subjects.
 
-function displayAnalyzedData(folderSourceString,subjectNameLists,strList,projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,gamma1Range,gamma2Range,alphaRange,useMedianFlag,spatialFrequenciesToRemove,useCleanData)
+function displayAnalyzedData(folderSourceString,subjectNameLists,strList,projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,gamma1Range,gamma2Range,alphaRange,useMedianFlag,spatialFrequenciesToRemove,useCleanData,temporalFrequencyToUse)
 
 if ~exist('stRange','var');         stRange = [0.25 0.75];              end
 if ~exist('removeMicroSaccadesFlag','var'); removeMicroSaccadesFlag=0;  end
@@ -27,7 +27,11 @@ if strcmpi(protocolType,'SF_ORI')
     cLims = [-2 2];
     %barLims = [-1 2];
 elseif strcmpi(protocolType,'TFCP')
-    cLims = [-4 12];
+    if temporalFrequencyToUse==0
+        cLims = [-2 2];
+    else
+        cLims = [-4 12];
+    end
     %barLims = [4 10];
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%% Display Settings %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -55,12 +59,12 @@ for i=1:numGroups
     disp(['Getting data for group: ' strList{i}]);
     subjectNameList = subjectNameLists{i};
     if nonMatchedFlag
-        dataForDisplayAllGroups{i} = combineAnalyzedData(folderSourceString,subjectNameList,projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,gamma1Range,gamma2Range,alphaRange,spatialFrequenciesToRemove,useCleanData);
+        dataForDisplayAllGroups{i} = combineAnalyzedData(folderSourceString,subjectNameList,projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,gamma1Range,gamma2Range,alphaRange,spatialFrequenciesToRemove,useCleanData,temporalFrequencyToUse);
     else
         numLists = length(subjectNameList);
         dataForDisplayAllGroupsTMP = cell(1,numLists);
         for j=1:numLists
-            dataForDisplayAllGroupsTMP{j} = combineAnalyzedData(folderSourceString,subjectNameList{j},projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,gamma1Range,gamma2Range,alphaRange,spatialFrequenciesToRemove,useCleanData);
+            dataForDisplayAllGroupsTMP{j} = combineAnalyzedData(folderSourceString,subjectNameList{j},projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,gamma1Range,gamma2Range,alphaRange,spatialFrequenciesToRemove,useCleanData,temporalFrequencyToUse);
         end
         dataForDisplayAllGroups{i} = combineDataForDisplay(dataForDisplayAllGroupsTMP,0);
     end

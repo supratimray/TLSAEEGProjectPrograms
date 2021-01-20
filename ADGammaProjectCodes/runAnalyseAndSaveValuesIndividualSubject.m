@@ -17,6 +17,7 @@ protocolType = 'SF_ORI'; % 'TFCP'; % SF_ORI for gamma, TFCP for SSVEP
 removeMicroSaccadesFlag = 0; % 0 or 1.
 spatialFrequenciesToRemove = 1;
 useCleanData = 1; % cleanData refers to the data before decimation. You must have cleanData folder for this option to work.
+temporalFrequencyToUse = 0; % 0 or 16; Only used for TFCP protocol
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Subjects %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 goodSubjectsList = getGoodSubjectsProjectwise(projectName);
@@ -51,5 +52,5 @@ goodSubjectsAll = [subjectNameList{1} subjectNameList{2}];
 for iSub = 1:length(goodSubjectsAll)
     subjectName = goodSubjectsAll{iSub};
     disp([num2str(iSub) ': ' subjectName]);
-    analyseAndSaveValuesIndividualSubject(folderSourceString,subjectName,projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,spatialFrequenciesToRemove,useCleanData); % Save data in analyzedData
+    analyseAndSaveValuesIndividualSubject(folderSourceString,subjectName,projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,spatialFrequenciesToRemove,useCleanData,temporalFrequencyToUse); % Save data in analyzedData
 end

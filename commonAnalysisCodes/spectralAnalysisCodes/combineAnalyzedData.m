@@ -1,6 +1,6 @@
 % This program combines analyzedData across subjects
 
-function dataForDisplay = combineAnalyzedData(folderSourceString,subjectNameList,projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,gamma1Range,gamma2Range,alphaRange,spatialFrequenciesToRemove,useCleanData)
+function dataForDisplay = combineAnalyzedData(folderSourceString,subjectNameList,projectName,refType,protocolType,stRange,removeMicroSaccadesFlag,gamma1Range,gamma2Range,alphaRange,spatialFrequenciesToRemove,useCleanData,temporalFrequencyToUse)
 
 if ~exist('stRange','var');         stRange = [0.25 0.75];              end
 if ~exist('removeMicroSaccadesFlag','var'); removeMicroSaccadesFlag=0;  end
@@ -9,8 +9,9 @@ if ~exist('gamma2Range','var');     gamma2Range = [36 66];              end
 if ~exist('alphaRange','var');      alphaRange = [8 12];                end
 if ~exist('spatialFrequenciesToRemove','var'); spatialFrequenciesToRemove=[];  end
 if ~exist('useCleanData','var');    useCleanData=0;                     end
+if ~exist('temporalFrequencyToUse','var'); temporalFrequencyToUse=[];   end
 
-SSVEPFreqHz = 32;
+SSVEPFreqHz = 2*temporalFrequencyToUse;
 
 analyzedDataFolder = fullfile(folderSourceString,'analyzedData',projectName,protocolType);
 
@@ -36,7 +37,7 @@ for iSub = 1:numSubjects
             '_stRange_' num2str(1000*stRange(1)) '_' num2str(1000*stRange(2))]);
     end
     
-    if ~isempty(spatialFrequenciesToRemove)
+    if ~isempty(spatialFrequenciesToRemove) && ~strcmp(protocolType,'TFCP')
         analysisDetailsInputFile = cat(2,analysisDetailsInputFile,'_RemoveSF');
         for i=1:length(spatialFrequenciesToRemove)
             analysisDetailsInputFile = cat(2,analysisDetailsInputFile,num2str(spatialFrequenciesToRemove(i)));
@@ -45,6 +46,10 @@ for iSub = 1:numSubjects
     
     if useCleanData
         analysisDetailsInputFile = cat(2,analysisDetailsInputFile,'_CleanData');
+    end
+
+    if strcmp(protocolType,'TFCP') && (temporalFrequencyToUse==0)
+        analysisDetailsInputFile = cat(2,analysisDetailsInputFile,'_Static');
     end
 
     analysisDetailsInputFile = cat(2,analysisDetailsInputFile,'.mat');
@@ -74,7 +79,7 @@ for iSub = 1:numSubjects
             freqVals = analyzedData.freqVals;
             dataForDisplay.freqVals = freqVals;
             
-            if strcmpi(protocolType,'SF_ORI')
+            if strcmpi(protocolType,'SF_ORI') || (strcmpi(protocolType,'TFCP') && (temporalFrequencyToUse==0))
                 % Get alpha and gamma Pos
                 posList = cell(1,3);
                 rangeNames{1} = 'SG';
