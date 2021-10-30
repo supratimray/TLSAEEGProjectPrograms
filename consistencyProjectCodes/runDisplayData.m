@@ -1,3 +1,10 @@
+% This program uses the common exlcusion criteria that is applicable for
+% all projects. However, additional exclusion criteria were added in the
+% paper later, which reduced the number of subjects from 48 to 40. These
+% can be found here: https://github.com/wupadrasta/TLSAEEGProjectPrograms.
+% To preserve compatibility with other projects, these criteria are not
+% used in this program, so we end up with 48 subjects.
+
 clear; clc;
 
 % Mandatory fixed options
@@ -64,29 +71,25 @@ for i=1:numGroups
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-numSubjectsPerPlot = 10;
+numSubjectsPerPlot = 20;
+
+% Females
 powerForSorting = squeeze(mean(sum(powerDBAllSubjects(:,:,2),3),1)); % Avg for SG and FG
-allMalePos = find(strcmp(genderListMatched(2,:),{'M'}));
-[~,ids] = sort(powerForSorting(allMalePos),'descend');
+goodPos = find(strcmp(genderListMatched(2,:),{'F'})); % There is an error in the gender of 1 subject. Using list 2 which has the correct gender.
+% goodPos = find(strcmp(genderListMatched(2,:),{'M'}));
 
-% Fig1
-displayDataIndividualSubjects(allMalePos(ids(1:numSubjectsPerPlot)),dTFPowerDBAllSubjects,dPowerVsFreqAllSubjects,timeValsTF,freqValsTF,freqVals);
+[~,ids] = sort(powerForSorting(goodPos),'descend');
+displayDataIndividualSubjects(goodPos(ids(1:numSubjectsPerPlot)),dTFPowerDBAllSubjects,dPowerVsFreqAllSubjects,timeValsTF,freqValsTF,freqVals);
 
-% SupFig1A 11-20
-% SupFig1B 21-28
-
-% Fig2 - Females 1-10
-% SupFig2 - Females 11-20
-
-%%%%%%%%%%%%%%%%% Summary Plots %%%%%%%%%%%%%%%%%%
-for i=1:numSubjects
-    x = squeeze(dPowerVsFreqAllSubjects(1,i,:));
-    for j=1:numSubjects
-        y = squeeze(dPowerVsFreqAllSubjects(2,j,:));
-        c = corrcoef(x,y);
-        cData(i,j) = c(1,2);
-    end
-    selfCorr(i) = cData(i,i);
-    otherCorr(i) = median(setdiff(cData(i,:),cData(i,i)));
-end
-plot(selfCorr,otherCorr,'o');
+% %%%%%%%%%%%%%%%%%%%%%%  Self vs Other Plots %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% for i=1:numSubjects
+%     x = squeeze(dPowerVsFreqAllSubjects(1,i,:));
+%     for j=1:numSubjects
+%         y = squeeze(dPowerVsFreqAllSubjects(2,j,:));
+%         c = corrcoef(x,y);
+%         cData(i,j) = c(1,2);
+%     end
+%     selfCorr(i) = cData(i,i);
+%     otherCorr(i) = median(setdiff(cData(i,:),cData(i,i)));
+% end
+% plot(selfCorr,otherCorr,'o');

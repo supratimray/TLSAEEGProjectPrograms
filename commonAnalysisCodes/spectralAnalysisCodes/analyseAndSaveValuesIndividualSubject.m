@@ -9,13 +9,14 @@ if ~exist('stRange','var');         stRange = [0.25 0.75];              end
 if ~exist('removeMicroSaccadesFlag','var'); removeMicroSaccadesFlag=0;  end
 if ~exist('spatialFrequenciesToRemove','var'); spatialFrequenciesToRemove=[];  end
 if ~exist('useCleanData','var');    useCleanData=0;                     end
+if ~exist('temporalFrequencyToUse','var'); temporalFrequencyToUse = []; end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Calculations %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if strcmp(protocolType,'TFCP')
-    if ~exist('temporalFrequencyToUse','var') || isempty(temporalFrequencyToUse)
+     if isempty(temporalFrequencyToUse)
         condVals=16; % SSEVEPFreq/2
     else
         condVals=temporalFrequencyToUse;

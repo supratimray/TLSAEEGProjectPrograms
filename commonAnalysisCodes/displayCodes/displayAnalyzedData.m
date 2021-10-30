@@ -17,6 +17,7 @@ if ~exist('alphaRange','var');      alphaRange = [8 12];                end
 if ~exist('useMedianFlag','var');   useMedianFlag = 1;                  end
 if ~exist('spatialFrequenciesToRemove','var'); spatialFrequenciesToRemove=[];  end
 if ~exist('useCleanData','var');    useCleanData=0;                     end
+if ~exist('temporalFrequencyToUse','var'); temporalFrequencyToUse=[];   end
 
 numGroups = length(subjectNameLists);
 
@@ -233,9 +234,17 @@ for i=1:numRanges
         disp([dataForDisplay.rangeNames{i} '; KW test: X2(' num2str(tblD{4,3}) ')=' num2str(round(tblD{2,5},2)) ', p=' num2str(pD)]);
     else
         if nonMatchedFlag
-            [~,pD,~,stats] = ttest2(dataBar{1}(:,i),dataBar{2}(:,i));
+            if i==3 % alpha
+                [~,pD,~,stats] = ttest2(dataBar{1}(:,i),dataBar{2}(:,i),'tail','left');
+            else
+                [~,pD,~,stats] = ttest2(dataBar{1}(:,i),dataBar{2}(:,i),'tail','right');
+            end
         else
-            [~,pD,~,stats] = ttest(dataBar{1}(:,i),dataBar{2}(:,i));
+            if i==3 % alpha
+                [~,pD,~,stats] = ttest(dataBar{1}(:,i),dataBar{2}(:,i),'tail','left');
+            else
+                [~,pD,~,stats] = ttest(dataBar{1}(:,i),dataBar{2}(:,i),'tail','right');
+            end
         end
         disp([dataForDisplay.rangeNames{i} '; t-test: tstat(' num2str(stats.df) ')=' num2str(round(stats.tstat,2)) ', p=' num2str(pD)]);
     end

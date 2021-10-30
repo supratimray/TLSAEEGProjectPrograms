@@ -45,7 +45,10 @@ allNumTrials = [];
 for iSub = 1:length(subjectNames)
     subjectName = subjectNames{iSub};
     
-    analysisDetailsFile = getAnalysisDetailsFile(analyzedDataFolder,subjectName,refType,protocolType,stRange,0,1,1,16);
+    analysisDetailsFile = getAnalysisDetailsFile(analyzedDataFolder,subjectName,refType,protocolType,stRange,0,1,1,16); % Cleandata with SF1 removed - for ADGammaProject
+    if ~exist(analysisDetailsFile,'file')
+        analysisDetailsFile = getAnalysisDetailsFile(analyzedDataFolder,subjectName,refType,protocolType,stRange,0,[],0,16); % For other projects
+    end
 
     if exist(analysisDetailsFile,'file')
         x=load(analysisDetailsFile);
