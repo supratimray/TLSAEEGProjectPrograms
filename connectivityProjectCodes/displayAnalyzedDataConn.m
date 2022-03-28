@@ -53,9 +53,16 @@ for i=1:numFreqRanges % Analysis done separately for each frequency
             elseif strcmp(methodOptions.controlType,'matched')
                 tmp = combineAnalyzedDataConn(folderSourceString,subjectNameLists{1}{iCase},projectName,refType,protocolType,stRange,freqRanges(i),[],removeMicroSaccadesFlag,spatialFrequenciesToRemove,useCleanData);
                 
-                % Match power in tmp and dataForDisplayAllGroupsTMP{2,iCase}
+                powerCaseAllSides = cell2mat(dataForDisplayAllGroupsTMP{2,iCase}.diffPowerAllSubjects);
+                powerAllControlsAllSides = cell2mat(tmp.diffPowerAllSubjects');
+                
+                absDiffPower = abs(powerAllControlsAllSides(methodOptions.sideToShow,:) - powerCaseAllSides(methodOptions.sideToShow));
+                findBestControl = (absDiffPower==min(absDiffPower));
+                dataForDisplayAllGroupsTMP{1,iCase} = combineAnalyzedDataConn(folderSourceString,subjectNameLists{1}{iCase}(findBestControl),projectName,refType,protocolType,stRange,freqRanges(i),methodOptions.connMethod,removeMicroSaccadesFlag,spatialFrequenciesToRemove,useCleanData);
             end
         end
+        dataForDisplayAllGroups{1,i} = combinedData(dataForDisplayAllGroupsTMP{1,:});
+        dataForDisplayAllGroups{2,i} = combinedData(dataForDisplayAllGroupsTMP{2,:});
     end
 end
 
