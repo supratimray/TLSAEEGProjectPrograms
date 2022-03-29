@@ -23,7 +23,7 @@ methodOptions.controlType = 'unmatched'; % matched or unmatched
 methodOptions.sideToShow = 1; %1 - 'left'; % 2 - 'right', 3 - 'back'
 
 numControls = 1; % Number of controls per case for CaseVsControl
-
+% it should be passed as input to 'displayAnalyzedDataConn'
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%% Get Good Subjects %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
