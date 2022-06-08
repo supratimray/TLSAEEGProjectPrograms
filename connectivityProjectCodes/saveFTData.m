@@ -15,8 +15,12 @@ elec = getElectrodeDetails_ft(capType);
 if ~isempty(elec)
     for i=1:length(expDates)
         fileName = [subjectName '-' expDates{i} '-' protocolNames{i} '.mat'];
+        fileNamefT = fileName;
+        if ~isempty(spatialFrequenciesToRemove)
+            fileNamefT = [subjectName '-' expDates{i} '-' protocolNames{i} '_RemoveSF[' int2str(spatialFrequenciesToRemove) '].mat'];
+        end
         dataFileName = fullfile(dataFolder,fileName);
-        ftDataFileName = fullfile(ftDataFolder,fileName);
+        ftDataFileName = fullfile(ftDataFolder,fileNamefT);
         [data,goodProtFlag]=getFTDataType(dataFileName,capType,spatialFrequenciesToRemove,elec);
         numGoodTrials = data.numTrials;
         save(ftDataFileName,'data','goodProtFlag','numGoodTrials');
@@ -100,7 +104,9 @@ data.timeVals = timeVals;
 data.numTrials = numTrials;
 data.trialConditionLabels = inputData.trialConditionLabels;
 data.trialConditionVals = inputData.trialConditionVals;
-
+if ~isempty(spatialFrequenciesToRemove)
+data.trialConditionVals(badSFPos,:) = [];
+end
 data.badElecs = unique([inputData.badElecs.badImpedanceElecs; inputData.badElecs.flatPSDElecs; inputData.badElecs.noisyElecs]);
 
 % goodProtFlag
