@@ -7,16 +7,17 @@
 clc; clear; 
 
 % Mandatory fixed options
-folderSourceString = 'D:\OneDrive - Indian Institute of Science\Supratim\Projects\TLSAEEGProject'; % Indicate the parent folder of decimatedData
+% folderSourceString = 'D:\OneDrive - Indian Institute of Science\Supratim\Projects\TLSAEEGProject'; % Indicate the parent folder of decimatedData
+folderSourceString = 'E:\Santosh\Project codes\TataADProject'; % of decimated data
 projectName = 'ADGammaProject'; % Only this dataset, which is the main TLSA dataset, is configured as of now. Other options - 'AgeProjectRound1' and 'VisualGamma' may not work
 subProjectName = 'ConnectivityProject';
 stRange = [0.25 0.75];
 
 % Choose one of these options
-refType = 'unipolar'; % 'unipolar' or 'laplacian'
+refType = 'laplacian'; % 'unipolar' or 'laplacian'
 protocolType = 'SF_ORI'; % 'TFCP'; % SF_ORI for gamma, TFCP for SSVEP
 removeMicroSaccadesFlag = 0; % 0 or 1.
-spatialFrequenciesToRemove = 1;
+spatialFrequenciesToRemove = []; % This is not changed, as others are implemented later
 useCleanData = 0;
 
 %%%%%%%%%%%%%%%%%%%%%%%%% Get Good Subjects %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -42,14 +43,24 @@ if saveFTDataFlag
         [expDates,protocolNames,capType,usableDataFlag] = getProtocolDetailsForAnalysis(projectName,subjectName,protocolType);
         
         disp([num2str(iSub) ': ' subjectName]);
-        saveFTData(subjectName,expDates,protocolNames,capType,dataFolder,ftDataFolder,spatialFrequenciesToRemove);
+        saveFTData(subjectName,expDates,protocolNames,capType,dataFolder,ftDataFolder,spatialFrequenciesToRemove); % option "spatialFrequenciesToRemove" is not being used here
     end
 end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%% Save Analyzed Data %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-connMethod = 'ppc'; % coh, plv
-for iSub = 1:length(uniqueSubjectNames)
-    subjectName = uniqueSubjectNames{iSub};
-    disp([num2str(iSub) ': ' subjectName]);
-    analyseAndSaveValuesIndividualSubjectConn(folderSourceString,subjectName,projectName,subProjectName,refType,protocolType,connMethod,stRange,removeMicroSaccadesFlag,spatialFrequenciesToRemove,useCleanData);
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%% Save Analyzed Data %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+SFs = {[], 1}; % this is implemented on the data after loading (no separate files)
+connMethods = {'coh','plv','ppc'};
+for connCond = 1:length(connMethods)
+    for iSF = 1:2
+        spatialFrequenciesToRemove = SFs{iSF};
+        connMethod = connMethods{connCond}; % coh, plv, ppc
+        wb = waitbar(0,['Computing connectivity.. ' connMethod]);
+        for iSub = 1:length(uniqueSubjectNames)
+            waitbar(iSub/length(uniqueSubjectNames),wb,['Processing subj: ' int2str(iSub)]);
+            subjectName = uniqueSubjectNames{iSub};
+            disp([num2str(iSub) ': ' subjectName]);
+            analyseAndSaveValuesIndividualSubjectConn(folderSourceString,subjectName,projectName,subProjectName,refType,protocolType,connMethod,stRange,removeMicroSaccadesFlag,spatialFrequenciesToRemove,useCleanData);
+        end
+        close(wb);
+    end
 end

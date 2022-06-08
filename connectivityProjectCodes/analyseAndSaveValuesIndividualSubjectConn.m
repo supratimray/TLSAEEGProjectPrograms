@@ -23,7 +23,7 @@ ftDataFolder = fullfile(folderSourceString,'ftData',projectName,protocolType);
 
 if usableDataFlag && ~isempty(expDates) && strcmp(capType{1},'actiCap64')
     
-    [dataPost,dataPre,goodProtFlag,numGoodTrials] = getDataSingleSubjectFT(subjectName,expDates,protocolNames,refType,ftDataFolder,stRange);
+    [dataPost,dataPre,goodProtFlag,numGoodTrials] = getDataSingleSubjectFT(subjectName,expDates,protocolNames,refType,ftDataFolder,stRange,spatialFrequenciesToRemove);
     
     if ~exist(analysisDetailsFileFreq,'file')
         [freqPost,freqPre] = getFreqData(dataPost,dataPre,goodProtFlag);
@@ -35,7 +35,7 @@ if usableDataFlag && ~isempty(expDates) && strcmp(capType{1},'actiCap64')
     end
 end
 end
-function [dataPost,dataPre,goodProtFlag,numGoodTrials]=getDataSingleSubjectFT(subjectName,expDates,protocolNames,refType,ftDataFolder,stRange)
+function [dataPost,dataPre,goodProtFlag,numGoodTrials]=getDataSingleSubjectFT(subjectName,expDates,protocolNames,refType,ftDataFolder,stRange,spatialFrequenciesToRemove)
 
 numSessions = length(expDates);
 dataPre = cell(1,numSessions);
@@ -46,8 +46,12 @@ numGoodTrials = zeros(1,numSessions);
 for i=1:numSessions
     % get Data
     dataFileName = fullfile(ftDataFolder,[subjectName '-' expDates{i} '-' protocolNames{i} '.mat']);
+%     if ~isempty(spatialFrequenciesToRemove)
+%         dataFileName = fullfile(ftDataFolder,[subjectName '-' expDates{i} '-' protocolNames{i} '_RemoveSF[' int2str(spatialFrequenciesToRemove) '].mat']);
+%     end
     x = load(dataFileName);
     data = x.data;
+    data = removeSFtrials(data,spatialFrequenciesToRemove); % function to remove SF conditions, after loading data
     goodProtFlag = cat(2,goodProtFlag,x.goodProtFlag);
     numGoodTrials(i) = x.numGoodTrials;
     
@@ -55,7 +59,9 @@ for i=1:numSessions
     if(strncmpi(refType,'Lap',3))      
         cfg = [];
         cfg.elec = data.elec;
+        badElecs = data.badElecs;
         data = ft_scalpcurrentdensity(cfg,data);
+        data.badElecs = badElecs;
     end
     
     cfg        = [];
@@ -115,12 +121,12 @@ for prot = 1:length(data) % across protocols
 end
 conn = removeDimIfSingleton(nanmean(connList(goodProtFlag,:,:,:),1)); % averaging across protocols
 
-if(excludeHighConnElecsFlag)
-    connBadElecs = findBadElecsfromConn(conn);
-    totalBadElecs = union(badElecs_accum,connBadElecs);
-else
+% if(excludeHighConnElecsFlag)
+%     connBadElecs = findBadElecsfromConn(conn);
+%     totalBadElecs = union(badElecs_accum,connBadElecs);
+% else
     totalBadElecs = badElecs_accum;
-end
+% end
 
 conn(totalBadElecs,:,:) = NaN;
 conn(:,totalBadElecs,:) = NaN;
@@ -150,19 +156,36 @@ cfg=[];
 cfg.method = method;
 conn_stat = ft_connectivityanalysis(cfg, TfreqPost);
 end
-function connBadElecs = findBadElecsfromConn(conn)
-% Very high peaks (as found in wPLI)
-freqRanges = {[8 12], [20 34], [36 66]};
-f = 0:2:100;
-for fr = 1:length(freqRanges)
-    freqBins = f>=freqRanges{fr}(1) & f<=freqRanges{fr}(2);
-    connBadElecs = [];
-    out_band=mean(conn(:,:,freqBins),3);
-    for ele = 1:64
-        cval = out_band(ele,:);
-        cval(ele)=NaN;
-        nanindx = isnan(cval);
-        connBadElecs = cat(2,connBadElecs,find(cval(~nanindx)>0.95));
+
+% function connBadElecs = findBadElecsfromConn(conn)
+% % Very high peaks (as found in wPLI)
+% freqRanges = {[8 12], [20 34], [36 66]};
+% f = 0:2:100;
+% for fr = 1:length(freqRanges)
+%     freqBins = f>=freqRanges{fr}(1) & f<=freqRanges{fr}(2);
+%     connBadElecs = [];
+%     out_band=mean(conn(:,:,freqBins),3);
+%     for ele = 1:64
+%         cval = out_band(ele,:);
+%         cval(ele)=NaN;
+%         nanindx = isnan(cval);
+%         connBadElecs = cat(2,connBadElecs,find(cval(~nanindx)>0.95));
+%     end
+% end
+% end
+
+function out = removeSFtrials(data,spatialFrequenciesToRemove)
+out = data;
+if ~isempty(spatialFrequenciesToRemove)
+    allSFs = data.trialConditionVals(:,1);
+    badSFPos = [];
+    for i=1:length(spatialFrequenciesToRemove)
+        badSFPos = cat(1,badSFPos,find(spatialFrequenciesToRemove(i)==allSFs));
     end
+    out.trialConditionVals(badSFPos,:) = [];
+    goodSFPos = setdiff(1:data.numTrials,badSFPos);
+    out.trial = data.trial(goodSFPos);
+    out.time = data.time(goodSFPos);
+    out.numTrials = length(goodSFPos);
 end
 end

@@ -16,7 +16,7 @@ if topoplotFlag
 else % get selected electrodes
     
     if strcmp(capLayout,'actiCap64')
-        if strcmp(refType,'unipolar')
+        if strcmp(refType,'unipolar') || strcmp(refType,'laplacian')
             
             % Left side
             iSide = 1; iElec = 0;

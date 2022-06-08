@@ -7,6 +7,7 @@ if ~exist('stRange','var');         stRange = [0.25 0.75];              end
 if ~exist('removeMicroSaccadesFlag','var'); removeMicroSaccadesFlag=0;  end
 if ~exist('spatialFrequenciesToRemove','var'); spatialFrequenciesToRemove=[];  end
 if ~exist('useCleanData','var');    useCleanData=0;                     end
+% if ~exist('numControls','var');     numControls=1;                      end
 
 analyzedDataFolder = fullfile(folderSourceString,'analyzedData',projectName,protocolType);
 
@@ -16,11 +17,13 @@ numSubjects = length(subjectNameList);
 logBLPowerVsFreqAllSubjects = [];
 logSTPowerVsFreqAllSubjects = [];
 diffPowerAllSubjects = {};
+stPowerAllSubjects = {};
+blPowerAllSubjects = {};
 diffPowerTopoAllSubjects = {};
 stPowerTopoAllSubjects = {};
-
 connFreqBandsAllSubjects = {};
 connAllSubjects = {}; 
+expDatesList = {};
 
 for iSub = 1:numSubjects
     subjectName = subjectNameList{iSub};
@@ -53,11 +56,11 @@ for iSub = 1:numSubjects
         end
         
         % averaging across electrode Groups
-        [~,~,capLayout,~] = getProtocolDetailsForAnalysis('ADGammaProject',subjectName,protocolType);
+        [expDates,~,capLayout,~] = getProtocolDetailsForAnalysis('ADGammaProject',subjectName,protocolType);
         elecGroupsCell = getElectrodeList(capLayout{1},refType,0,1); % has electrode divisions
         numSides = length(elecGroupsCell)-1;
         
-        % comverting cell to double array
+        % converting cell to double array
         elecGroups = cell(1,numSides);
         blPSD = cell(1,numSides);
         stPSD = cell(1,numSides);
@@ -72,11 +75,15 @@ for iSub = 1:numSubjects
         
         numAllElecs = 64;
         diffPower = zeros(numSides,numFreqRanges);
+        stPower = zeros(numSides,numFreqRanges);
+        blPower = zeros(numSides,numFreqRanges);
         for iSide = 1:numSides
             for j=1:numFreqRanges
                 stPow = nanmean(nanmean(analyzedDataFreq.freqPost.powspctrm(elecGroups{iSide},posList{j}),2),1);
                 blPow = nanmean(nanmean(analyzedDataFreq.freqPre.powspctrm(elecGroups{iSide},posList{j}),2),1);
                 diffPower(iSide,j) = 10*(log10(stPow) - log10(blPow));
+                stPower(iSide,j) = 10*(log10(stPow));
+                blPower(iSide,j) = 10*(log10(blPow));
             end
         end
         
@@ -90,8 +97,11 @@ for iSub = 1:numSubjects
         end
         
         diffPowerAllSubjects = cat(1,diffPowerAllSubjects,diffPower);
+        stPowerAllSubjects = cat(1,stPowerAllSubjects,stPower);
+        blPowerAllSubjects = cat(1,blPowerAllSubjects,blPower);
         stPowerTopoAllSubjects = cat(1,stPowerTopoAllSubjects,stPowerTopo);
         diffPowerTopoAllSubjects = cat(1,diffPowerTopoAllSubjects,diffPowerTopo);
+        expDatesList = cat(1,expDatesList,expDates{1});
         
         % Compute connectivity measures also if needed
         if ~isempty(connMethod)
@@ -120,8 +130,11 @@ end
 dataForDisplay.logBLPowerVsFreqAllSubjects = logBLPowerVsFreqAllSubjects;
 dataForDisplay.logSTPowerVsFreqAllSubjects = logSTPowerVsFreqAllSubjects;
 dataForDisplay.diffPowerAllSubjects = diffPowerAllSubjects;
+dataForDisplay.stPowerAllSubjects = stPowerAllSubjects;
+dataForDisplay.blPowerAllSubjects = blPowerAllSubjects;
 dataForDisplay.diffPowerTopoAllSubjects = diffPowerTopoAllSubjects;
 dataForDisplay.stPowerTopoAllSubjects = stPowerTopoAllSubjects;
 dataForDisplay.connAllSubjects = connAllSubjects;
 dataForDisplay.connFreqBandsAllSubjects = connFreqBandsAllSubjects;
+dataForDisplay.expDate = expDatesList;
 end
