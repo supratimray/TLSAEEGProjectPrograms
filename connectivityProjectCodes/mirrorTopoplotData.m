@@ -1,0 +1,9 @@
+function mirrored_topoData = mirrorTopoplotData(data)
+mirror_elecNums = [2 1	7	6	5	4	3	11	10	9	8	16	15	14 ...
+    13	12	22	21	20	19	18	17	27	26	25	24	23	32	31	30	29 ...
+    28	36	35	34	33	40	39	38	37	46	45	44	43	42	41	50	49 ...
+    48	47	55	54	53	52	51	59	58	57	56	64	63	62	61	60];
+for subjIndx = 1:size(data,1)
+mirrored_topoData{subjIndx,1} = data{subjIndx,1}(:,:,mirror_elecNums);
+end
+end
