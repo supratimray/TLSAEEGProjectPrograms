@@ -7,7 +7,6 @@ if ~exist('stRange','var');         stRange = [0.25 0.75];              end
 if ~exist('removeMicroSaccadesFlag','var'); removeMicroSaccadesFlag=0;  end
 if ~exist('spatialFrequenciesToRemove','var'); spatialFrequenciesToRemove=[];  end
 if ~exist('useCleanData','var');    useCleanData=0;                     end
-% if ~exist('numControls','var');     numControls=1;                      end
 
 analyzedDataFolder = fullfile(folderSourceString,'analyzedData',projectName,protocolType);
 
@@ -66,7 +65,7 @@ for iSub = 1:numSubjects
         stPSD = cell(1,numSides);
         for iG = 1:numSides
             elecGroups{iG} = cell2mat(elecGroupsCell{iG+1}); % Adding 1 because the first one contains the union of all three sides
-            blPSD{iG} = log10(squeeze(nanmean(analyzedDataFreq.freqPre.powspctrm(elecGroups{iG},:),1)));
+            blPSD{iG} = log10(squeeze(nanmean(analyzedDataFreq.freqPre.powspctrm(elecGroups{iG},:),1))); % HERE CHSNGE
             stPSD{iG} = log10(squeeze(nanmean(analyzedDataFreq.freqPost.powspctrm(elecGroups{iG},:),1)));
         end
         
@@ -82,8 +81,8 @@ for iSub = 1:numSubjects
                 stPow = nanmean(nanmean(analyzedDataFreq.freqPost.powspctrm(elecGroups{iSide},posList{j}),2),1);
                 blPow = nanmean(nanmean(analyzedDataFreq.freqPre.powspctrm(elecGroups{iSide},posList{j}),2),1);
                 diffPower(iSide,j) = 10*(log10(stPow) - log10(blPow));
-                stPower(iSide,j) = 10*(log10(stPow));
-                blPower(iSide,j) = 10*(log10(blPow));
+                stPower(iSide,j) = (log10(stPow));
+                blPower(iSide,j) = (log10(blPow));
             end
         end
         

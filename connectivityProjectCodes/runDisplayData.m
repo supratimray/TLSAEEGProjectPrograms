@@ -5,8 +5,11 @@ folderSourceString = 'E:\Santosh\Project codes\TataADProject'; % of decimated da
 projectName = 'ADGammaProject';
 subProjectName = 'ConnectivityProject';
 stRange = [0.25 0.75]; 
-pow_label = 'st'; % 'st' or 'diff' or 'bl' [used for power-matching]
-numControls = []; % for 'unmatched' case in CaseVsControl
+pow_label = 'diff'; % 'st' or 'diff' or 'bl' [used for power-matching]
+numControls = []; % for 'unmatched' case in CaseVsControl, [] indicates all the available controls
+combineOppSide = true;
+newfigpath = 'E:\Santosh\Project codes\TataADProject\Plots\AgeConnectivity\NEWnewPlots';
+medianFlag = true;
 
 freqRanges{1} = [8 12]; freqRangeNames{1} = 'Alpha'; % alpha
 freqRanges{2} = [20 34]; freqRangeNames{2} = 'Slow gamma'; % slow gamma
@@ -16,7 +19,7 @@ numFreqRanges = length(freqRanges);
 %%%%%%%%%%%%%%%%%%%%%%%% Choose one of these options %%%%%%%%%%%%%%%%%%%%%%
 refType = 'unipolar'; % 'unipolar' or 'laplacian'
 protocolType = 'SF_ORI'; % 'TFCP'; % SF_ORI for gamma, TFCP for SSVEP
-removeMicroSaccadesFlag = 0; % 0 or 1.
+removeMicroSaccadesFlag = 0; % 0 or 1
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%% Get Good Subjects %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -36,8 +39,13 @@ disp([num2str(length(goodIndices)) ' subjects with correct capType chosen for fu
 uniqueSubjectNames = uniqueSubjectNames0(goodIndices);
 [ageList,genderList,cdrList] = getDemographicDetails(projectName,uniqueSubjectNames);
 healthyPos = strcmp(cdrList,'HV');
+caseType = 'MCI';
+casePos = strcmp(cdrList,caseType); %strcmp(cdrList,'AD'); % 'MCI', 'AD' or ~healthyPos for MCI+AD
+methodOptions.caseType = caseType;
+methodOptions.CaseVsControl.ageList = ageList(casePos);
 methodOptions.MidVsOld.ageList = ageList(healthyPos);
 methodOptions.CaseVsControl.unmatched.numControls = numControls;
+methodOptions.CaseVsControl.genderList = genderList(casePos);
 %%%%%%%%%%%%%%%%%% Generates subjectNameListFinal %%%%%%%%%%%%%%%%%%%%%%%%%
 % Note that subjectNameListFinal is a cell array of size 2 which has different structure depending on comparisonType.
 % For MidVsOld - the cell arrays contain the subjectNames in middled aged and elderly groups
@@ -50,10 +58,10 @@ comparisonTypes = {'MidVsOld', 'CaseVsControl'};
 connMethods = {'coh','plv','ppc'};
 powTypes = {'unmatched', 'matched'};
 methodOptions.pow_label = pow_label;
-for iSF = 1:2
+for iSF = 1
     spatialFrequenciesToRemove = SFs{iSF};
     useCleanData = 0;
-    for compCond = 1:2
+    for compCond = 1
         methodOptions.comparisonType = comparisonTypes{compCond}; % MidVsOld or 'CaseVsControl'
         if strcmp(methodOptions.comparisonType,'MidVsOld')
             % For MidVsOld - we simply take healthy subjects who are less than 65, combining both males and females
@@ -63,7 +71,6 @@ for iSF = 1:2
             subjectNameListFinal{2} = uniqueSubjectNames(ageGroup2Pos); strList{2} = 'Elderly';
         elseif strcmp(methodOptions.comparisonType,'CaseVsControl')
             ageLim = 1;
-            casePos = strcmp(cdrList,'MCI'); % 'MCI', 'AD' or ~healthyPos for MCI+AD
             caseList = setdiff(uniqueSubjectNames(casePos),[{'217SK'} {'225SK'}]);
             controlList = []; controlListCaseNumber = [];
             for i=1:length(caseList)
@@ -78,6 +85,10 @@ for iSF = 1:2
                 controlListCaseNumber = cat(2,controlListCaseNumber,i+zeros(1,length(controls)));
                 disp([num2str(i) '. ' subjectName ' (' num2str(age) ',' gender{1} '): ' num2str(length(controls)) ' controls.']);
             end
+            % Method 1
+            subjectNameList{1} = unique(controlList); strList{1} = 'Controls';
+            subjectNameList{2} = caseList; strList{2} = 'Cases';
+            
             casesWithControls = unique(controlListCaseNumber);
             numValidCases = length(casesWithControls);
             subjectNameListFinal = cell(1,2);
@@ -88,13 +99,15 @@ for iSF = 1:2
             strList{1} = 'Controls';
             strList{2} = 'Cases';
         end
+        
         useMedianFlag = 1;
-        for connCond = 1:length(connMethods)
+        for connCond = 1%:length(connMethods)
             methodOptions.connMethod = connMethods{connCond};
             for powCond = 2%1:2
                 methodOptions.powcontrolType = powTypes{powCond};
-                for sideToShow = 1:3
+                for sideToShow = 1%:3
                     methodOptions.sideToShow = sideToShow;
+                    methodOptions.combineOppSide = combineOppSide; % combining left & right sides
                     figR = figure('numbertitle','off','name',generateFigName(methodOptions,spatialFrequenciesToRemove));
                     figR.PaperType = 'a4';
                     figR.PaperUnits = 'centimeters';
@@ -102,8 +115,8 @@ for iSF = 1:2
                     figR.PaperOrientation = 'Landscape';
                     figR.PaperPosition = [0 0 figR.PaperSize];
                     figR.Color = [1 1 1]; % White background
-                    displayAnalyzedDataConn(pwd,subjectNameListFinal,methodOptions,strList,subProjectName,refType,protocolType,stRange,freqRanges,freqRangeNames,removeMicroSaccadesFlag,useMedianFlag,spatialFrequenciesToRemove,useCleanData);
-                    print(figR,'-painters',fullfile(pwd,generateFigName(methodOptions,spatialFrequenciesToRemove)),'-dtiff','-r300');
+                    displayAnalyzedDataConn(pwd,subjectNameListFinal,methodOptions,strList,subProjectName,refType,protocolType,stRange,freqRanges,freqRangeNames,removeMicroSaccadesFlag,useMedianFlag,spatialFrequenciesToRemove,useCleanData,medianFlag);
+                    print(figR,'-painters',fullfile(newfigpath,generateFigName(methodOptions,spatialFrequenciesToRemove)),'-dtiff','-r300');
                 end
             end
         end
