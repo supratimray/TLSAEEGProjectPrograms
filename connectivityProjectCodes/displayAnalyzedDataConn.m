@@ -109,17 +109,17 @@ for i=1:numFreqRanges % analysis done separately for each frequency
     end
 end
 
-if(strcmp(methodOptions.comparisonType,'CaseVsControl')) % discarding cases based on SG
-    numCases = size(dataForDisplayAllGroups{2,2}.connAllSubjects,1); % considering slow gamma band
-    wd = @(x)(x(1:2));
-    pow_bothSides = cellfun(wd,dataForDisplayAllGroups{2,2}.diffPowerAllSubjects,'UniformOutput',false);
-    avgSGpow = mean(cell2mat(pow_bothSides'),1);
-    goodCases = avgSGpow > 0; % criteria
-    out(1,:) = selectCases(dataForDisplayAllGroups(1,:),goodCases);
-    out(2,:) = selectCases(dataForDisplayAllGroups(2,:),goodCases);
-    dataForDisplayAllGroups = out;
-    fprintf('Out of %d cases, %d cases are selected\n',numCases,nnz(goodCases));
-end
+% if(strcmp(methodOptions.comparisonType,'CaseVsControl')) % discarding cases based on SG
+%     numCases = size(dataForDisplayAllGroups{2,2}.connAllSubjects,1); % considering slow gamma band
+%     wd = @(x)(x(1:2));
+%     pow_bothSides = cellfun(wd,dataForDisplayAllGroups{2,2}.diffPowerAllSubjects,'UniformOutput',false);
+%     avgSGpow = mean(cell2mat(pow_bothSides'),1);
+%     goodCases = avgSGpow > 0; % criteria
+%     out(1,:) = selectCases(dataForDisplayAllGroups(1,:),goodCases);
+%     out(2,:) = selectCases(dataForDisplayAllGroups(2,:),goodCases);
+%     dataForDisplayAllGroups = out;
+%     fprintf('Out of %d cases, %d cases are selected\n',numCases,nnz(goodCases));
+% end
 
 %%%%%%%%%%%%%%%%%%%% Setting parameters for Display script %%%%%%%%%%%%%%%%%%%%
 elecGroupsCell = getElectrodeList('actiCap64',refType,0,1); % has electrode divisions
@@ -613,7 +613,7 @@ else
         out.logBLPowerVsFreqAllSubjects(iCase,:) = data{iCase}.logBLPowerVsFreqAllSubjects(1,:);
         out.logSTPowerVsFreqAllSubjects(iCase,:) = data{iCase}.logSTPowerVsFreqAllSubjects(1,:);
         out.diffPowerAllSubjects(iCase,:) = {data{iCase}.diffPowerAllSubjects(1,:)};
-        out.diffPowerTopoAllSubjects(iCase,:) = {data{iCase}.diffPowerTopoAllSubjects(1,:)};
+        out.diffPowerTopoAllSubjects(iCase,:) = data{iCase}.diffPowerTopoAllSubjects(1,1);
         out.stPowerTopoAllSubjects(iCase,:) = {data{iCase}.stPowerTopoAllSubjects(1,:)};
         out.connAllSubjects(iCase,:) = data{iCase}.connAllSubjects(1,:);
         out.connFreqBandsAllSubjects(iCase,:) = data{iCase}.connFreqBandsAllSubjects(1,:);
@@ -623,7 +623,7 @@ else
         out.logBLPowerVsFreqAllSubjects(nCases+iCase,:) = data{iCase}.logBLPowerVsFreqAllSubjects(2,:);
         out.logSTPowerVsFreqAllSubjects(nCases+iCase,:) = data{iCase}.logSTPowerVsFreqAllSubjects(2,:);
         out.diffPowerAllSubjects(nCases+iCase,:) = {data{iCase}.diffPowerAllSubjects(2,:)};
-        out.diffPowerTopoAllSubjects(nCases+iCase,:) = {data{iCase}.diffPowerTopoAllSubjects(2,:)};
+        out.diffPowerTopoAllSubjects(nCases+iCase,:) = data{iCase}.diffPowerTopoAllSubjects(2,1);
         out.stPowerTopoAllSubjects(nCases+iCase,:) = {data{iCase}.stPowerTopoAllSubjects(2,:)};
         out.connAllSubjects(nCases+iCase,:) = data{iCase}.connAllSubjects(2,:);
         out.connFreqBandsAllSubjects(nCases+iCase,:) = data{iCase}.connFreqBandsAllSubjects(2,:);
