@@ -104,7 +104,7 @@ for iSub = 1:numSubjects
         
         % Compute connectivity measures also if needed
         if ~isempty(connMethod)
-            analysisDetailsFileConn = [analysisDetailsFile(1:end-4) '_' connMethod '.mat']; % for saving connectivity
+            analysisDetailsFileConn = [analysisDetailsFile(1:end-4) '_' connMethod '.mat']; % for saving connectivity '_bl' before '.mat'
             analyzedDataConn = load(analysisDetailsFileConn);
             
             % removing '1' from reference related (x,x) combination
