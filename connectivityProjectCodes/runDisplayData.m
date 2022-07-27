@@ -5,11 +5,15 @@ folderSourceString = 'E:\Santosh\Project codes\TataADProject'; % of decimated da
 projectName = 'ADGammaProject';
 subProjectName = 'ConnectivityProject';
 stRange = [0.25 0.75]; 
-pow_label = 'diff'; % 'st' or 'diff' or 'bl' [used for power-matching]
+pow_label = 'diff'; % 'st' or 'diff' or 'bl' [used for power-matching & regression plots]
 numControls = []; % for 'unmatched' case in CaseVsControl, [] indicates all the available controls
-combineOppSide = true;
-newfigpath = 'E:\Santosh\Project codes\TataADProject\Plots\AgeConnectivity\NEWnewPlots';
-medianFlag = true;
+combineOppSide = true; % switch to enable mixing of data from both left and right electrode sides
+combinedMatching = true; % switch to enable mean-matching over both the electrode sides and the agegroups
+rejectLowPowSubjs = false; % switch to enable rejection of subjects, with change in power in slow gamma band < 0 dB
+
+newfigpath = 'E:\Santosh\Project codes\TataADProject\Plots\AgeConnectivity\NEWnewPlots'; % path for saving main figures
+medianFlag = true; % flag for 'topoplot of change in power', 'Conn. topoplot','Conn. profile across subjects','Conn. profile within bins & elecs'
+useMedianFlagBarPlot = 1; % flag for 'bar plots'
 
 freqRanges{1} = [8 12]; freqRangeNames{1} = 'Alpha'; % alpha
 freqRanges{2} = [20 34]; freqRangeNames{2} = 'Slow gamma'; % slow gamma
@@ -38,6 +42,7 @@ end
 disp([num2str(length(goodIndices)) ' subjects with correct capType chosen for further analysis']);
 uniqueSubjectNames = uniqueSubjectNames0(goodIndices);
 [ageList,genderList,cdrList] = getDemographicDetails(projectName,uniqueSubjectNames);
+
 healthyPos = strcmp(cdrList,'HV');
 caseType = 'MCI';
 casePos = strcmp(cdrList,caseType); %strcmp(cdrList,'AD'); % 'MCI', 'AD' or ~healthyPos for MCI+AD
@@ -46,6 +51,8 @@ methodOptions.CaseVsControl.ageList = ageList(casePos);
 methodOptions.MidVsOld.ageList = ageList(healthyPos);
 methodOptions.CaseVsControl.unmatched.numControls = numControls;
 methodOptions.CaseVsControl.genderList = genderList(casePos);
+
+
 %%%%%%%%%%%%%%%%%% Generates subjectNameListFinal %%%%%%%%%%%%%%%%%%%%%%%%%
 % Note that subjectNameListFinal is a cell array of size 2 which has different structure depending on comparisonType.
 % For MidVsOld - the cell arrays contain the subjectNames in middled aged and elderly groups
@@ -61,7 +68,7 @@ methodOptions.pow_label = pow_label;
 for iSF = 1
     spatialFrequenciesToRemove = SFs{iSF};
     useCleanData = 0;
-    for compCond = 1
+    for compCond = 2
         methodOptions.comparisonType = comparisonTypes{compCond}; % MidVsOld or 'CaseVsControl'
         if strcmp(methodOptions.comparisonType,'MidVsOld')
             % For MidVsOld - we simply take healthy subjects who are less than 65, combining both males and females
@@ -98,29 +105,42 @@ for iSF = 1
             end
             strList{1} = 'Controls';
             strList{2} = 'Cases';
-        end
-        
-        useMedianFlag = 1;
-        for connCond = 1%:length(connMethods)
+        end      
+        niters = 1; % it is USED only in matched case, not otherwise
+        slope_all = cell(1,niters); pvals = cell(1,niters);
+        for connCond = 3%:length(connMethods) % 3->'ppc'
             methodOptions.connMethod = connMethods{connCond};
             for powCond = 2%1:2
                 methodOptions.powcontrolType = powTypes{powCond};
-                for sideToShow = 1%:3
+                for sideToShow = 1%:3 % 1-> Left, 2-> Right, 3-> Back
+                    % but with 'combineOppSide' enabled, '1' includes {'1','2'}
                     methodOptions.sideToShow = sideToShow;
-                    methodOptions.combineOppSide = combineOppSide; % combining left & right sides
+                    methodOptions.combineOppSide = combineOppSide;
+                    methodOptions.combinedMatching = combinedMatching;
+                    methodOptions.rejectLowPowSubjs = rejectLowPowSubjs;
                     figR = figure('numbertitle','off','name',generateFigName(methodOptions,spatialFrequenciesToRemove));
                     figR.PaperType = 'a4';
                     figR.PaperUnits = 'centimeters';
-                    figR.PaperSize = [18 29.7];
+                    figR.PaperSize = [18 32];
                     figR.PaperOrientation = 'Landscape';
                     figR.PaperPosition = [0 0 figR.PaperSize];
                     figR.Color = [1 1 1]; % White background
-                    displayAnalyzedDataConn(pwd,subjectNameListFinal,methodOptions,strList,subProjectName,refType,protocolType,stRange,freqRanges,freqRangeNames,removeMicroSaccadesFlag,useMedianFlag,spatialFrequenciesToRemove,useCleanData,medianFlag);
-                    print(figR,'-painters',fullfile(newfigpath,generateFigName(methodOptions,spatialFrequenciesToRemove)),'-dtiff','-r300');
+                    for iter = 1:niters
+                        disp('Present iteration');
+                        disp(iter);
+                        [slope_all{iter},pvals{iter}] = displayAnalyzedDataConn(pwd,figR,newfigpath,subjectNameListFinal,methodOptions,strList,subProjectName,refType,protocolType,stRange,freqRanges,freqRangeNames,removeMicroSaccadesFlag,useMedianFlagBarPlot,spatialFrequenciesToRemove,useCleanData,medianFlag);
+                    end
+                    if(iter==1)
+                        print(figR,'-painters',fullfile(newfigpath,generateFigName(methodOptions,spatialFrequenciesToRemove)),'-dtiff','-r300');
+                    end
                 end
             end
         end
     end
+end
+
+if(niters>1)
+save(['itersData_' generateFigName(methodOptions,spatialFrequenciesToRemove)],'slope_all','pVals_all');
 end
 
 function figName = generateFigName(methodOptions,spatialFrequenciesToRemove)
@@ -134,4 +154,10 @@ for i=1:length(spatialFrequenciesToRemove)
     figName = cat(2,figName,num2str(spatialFrequenciesToRemove(i)));
 end
 figName = cat(2,figName,']');
+if(methodOptions.combinedMatching)
+    figName = cat(2,figName,'_cmbMatching');
+end
+if(methodOptions.rejectLowPowSubjs)
+    figName = cat(2,figName,'_LowPowRejected');
+end
 end
