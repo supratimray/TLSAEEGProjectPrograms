@@ -46,9 +46,6 @@ numGoodTrials = zeros(1,numSessions);
 for i=1:numSessions
     % get Data
     dataFileName = fullfile(ftDataFolder,[subjectName '-' expDates{i} '-' protocolNames{i} '.mat']);
-%     if ~isempty(spatialFrequenciesToRemove)
-%         dataFileName = fullfile(ftDataFolder,[subjectName '-' expDates{i} '-' protocolNames{i} '_RemoveSF[' int2str(spatialFrequenciesToRemove) '].mat']);
-%     end
     x = load(dataFileName);
     data = x.data;
     data = removeSFtrials(data,spatialFrequenciesToRemove); % function to remove SF conditions, after loading data
@@ -100,7 +97,6 @@ freqPost = eval(getCommandStr(length(freqPostList),'Post'));
 freqPre = eval(getCommandStr(length(freqPreList),'Pre'));
 
 end
-
 function commandStr = getCommandStr(numSessions,tag)
 
 commandStr = 'ft_freqgrandaverage(cfg,';
@@ -109,9 +105,7 @@ for i=1:numSessions
 end
 commandStr = [commandStr(1:end-1) ')'];
 end
-function connVsElec = getConnIndividualSubject(data,connMethod,goodProtFlag,excludeHighConnElecsFlag)
-
-if ~exist('excludeHighConnElecsFlag','var');    excludeHighConnElecsFlag=0; end
+function connVsElec = getConnIndividualSubject(data,connMethod,goodProtFlag)
 
 badElecs_accum = [];
 for prot = 1:length(data) % across protocols
@@ -121,13 +115,7 @@ for prot = 1:length(data) % across protocols
 end
 conn = removeDimIfSingleton(nanmean(connList(goodProtFlag,:,:,:),1)); % averaging across protocols
 
-% if(excludeHighConnElecsFlag)
-%     connBadElecs = findBadElecsfromConn(conn);
-%     totalBadElecs = union(badElecs_accum,connBadElecs);
-% else
-    totalBadElecs = badElecs_accum;
-% end
-
+totalBadElecs = badElecs_accum;
 conn(totalBadElecs,:,:) = NaN;
 conn(:,totalBadElecs,:) = NaN;
 connVsElec = conn;
@@ -156,24 +144,6 @@ cfg=[];
 cfg.method = method;
 conn_stat = ft_connectivityanalysis(cfg, TfreqPost);
 end
-
-% function connBadElecs = findBadElecsfromConn(conn)
-% % Very high peaks (as found in wPLI)
-% freqRanges = {[8 12], [20 34], [36 66]};
-% f = 0:2:100;
-% for fr = 1:length(freqRanges)
-%     freqBins = f>=freqRanges{fr}(1) & f<=freqRanges{fr}(2);
-%     connBadElecs = [];
-%     out_band=mean(conn(:,:,freqBins),3);
-%     for ele = 1:64
-%         cval = out_band(ele,:);
-%         cval(ele)=NaN;
-%         nanindx = isnan(cval);
-%         connBadElecs = cat(2,connBadElecs,find(cval(~nanindx)>0.95));
-%     end
-% end
-% end
-
 function out = removeSFtrials(data,spatialFrequenciesToRemove)
 out = data;
 if ~isempty(spatialFrequenciesToRemove)

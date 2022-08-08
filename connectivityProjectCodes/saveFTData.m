@@ -8,6 +8,9 @@
 % meant to be a temporary folder, which should be deleted and regenerated
 % when these parameters need to be changed.
 
+% Now we only run this program with spatialFrequencyToRemove set to [].
+% Other programs remove selected SFs if needed.
+
 function saveFTData(subjectName,expDates,protocolNames,capType,dataFolder,ftDataFolder,spatialFrequenciesToRemove)
 
 elec = getElectrodeDetails_ft(capType);

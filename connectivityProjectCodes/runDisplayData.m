@@ -1,7 +1,7 @@
 clc; clear;
 % Mandatory fixed options
-% folderSourceString = 'D:\OneDrive - Indian Institute of Science\Supratim\Projects\TLSAEEGProject'; % Indicate the parent folder of decimatedData
-folderSourceString = 'E:\Santosh\Project codes\TataADProject'; % of decimated data
+folderSourceString = 'D:\OneDrive - Indian Institute of Science\Supratim\Projects\TLSAEEGProject'; % Indicate the parent folder of decimatedData
+% folderSourceString = 'E:\Santosh\Project codes\TataADProject'; % of decimated data
 projectName = 'ADGammaProject';
 subProjectName = 'ConnectivityProject';
 stRange = [0.25 0.75]; 
@@ -11,8 +11,9 @@ combineOppSide = true; % switch to enable mixing of data from both left and righ
 combinedMatching = true; % switch to enable mean-matching over both the electrode sides and the agegroups
 rejectLowPowSubjs = false; % switch to enable rejection of subjects, with change in power in slow gamma band < 0 dB
 
-newfigpath = 'E:\Santosh\Project codes\TataADProject\Plots\AgeConnectivity\NEWnewPlots'; % path for saving main figures
-medianFlag = true; % flag for 'topoplot of change in power', 'Conn. topoplot','Conn. profile across subjects','Conn. profile within bins & elecs'
+% newfigpath = 'E:\Santosh\Project codes\TataADProject\Plots\AgeConnectivity\NEWnewPlots'; % path for saving main figures
+newfigpath = fullfile(pwd,'plots'); makeDirectory(newfigpath);
+useMedianFlagData = true; % flag for averaging data across subjects while generating 'topoplot of change in power', 'Conn. topoplot','Conn. profile across subjects','Conn. profile within bins & elecs'
 useMedianFlagBarPlot = 1; % flag for 'bar plots'
 
 freqRanges{1} = [8 12]; freqRangeNames{1} = 'Alpha'; % alpha
@@ -128,7 +129,7 @@ for iSF = 1
                     for iter = 1:niters
                         disp('Present iteration');
                         disp(iter);
-                        [slope_all{iter},pvals{iter}] = displayAnalyzedDataConn(pwd,figR,newfigpath,subjectNameListFinal,methodOptions,strList,subProjectName,refType,protocolType,stRange,freqRanges,freqRangeNames,removeMicroSaccadesFlag,useMedianFlagBarPlot,spatialFrequenciesToRemove,useCleanData,medianFlag);
+                        [slope_all{iter},pvals{iter}] = displayAnalyzedDataConn(pwd,figR,newfigpath,subjectNameListFinal,methodOptions,strList,subProjectName,refType,protocolType,stRange,freqRanges,freqRangeNames,removeMicroSaccadesFlag,useMedianFlagBarPlot,spatialFrequenciesToRemove,useCleanData,useMedianFlagData);
                     end
                     if(iter==1)
                         print(figR,'-painters',fullfile(newfigpath,generateFigName(methodOptions,spatialFrequenciesToRemove)),'-dtiff','-r300');

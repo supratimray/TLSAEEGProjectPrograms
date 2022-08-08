@@ -7,14 +7,14 @@
 clc; clear; 
 
 % Mandatory fixed options
-% folderSourceString = 'D:\OneDrive - Indian Institute of Science\Supratim\Projects\TLSAEEGProject'; % Indicate the parent folder of decimatedData
-folderSourceString = 'E:\Santosh\Project codes\TataADProject'; % of decimated data
+folderSourceString = 'D:\OneDrive - Indian Institute of Science\Supratim\Projects\TLSAEEGProject'; % Indicate the parent folder of decimatedData
+% folderSourceString = 'E:\Santosh\Project codes\TataADProject'; % of decimated data
 projectName = 'ADGammaProject'; % Only this dataset, which is the main TLSA dataset, is configured as of now. Other options - 'AgeProjectRound1' and 'VisualGamma' may not work
 subProjectName = 'ConnectivityProject';
 stRange = [0.25 0.75];
 
 % Choose one of these options
-refType = 'laplacian'; % 'unipolar' or 'laplacian'
+refType = 'unipolar'; % 'unipolar' or 'laplacian'
 protocolType = 'SF_ORI'; % 'TFCP'; % SF_ORI for gamma, TFCP for SSVEP
 removeMicroSaccadesFlag = 0; % 0 or 1.
 spatialFrequenciesToRemove = []; % This is not changed, as others are implemented later
