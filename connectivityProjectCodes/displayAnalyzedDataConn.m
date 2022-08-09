@@ -4,7 +4,7 @@
 % subjects. For example, subjectNameList{1} could contain all MCI/AD subjects
 % while subjectNameList{2} could contain all their controls.
 
-function [slope_all,pvals] = displayAnalyzedDataConn(folderSourceString,figR,figpath,subjectNameLists,methodOptions,strList,projectName,refType,protocolType,stRange,freqRanges,freqRangeNames,removeMicroSaccadesFlag,useMedianFlagBarPlot,spatialFrequenciesToRemove,useCleanData,useMedianFlagData)
+function [slope_all,pvals] = displayAnalyzedDataConn(folderSourceString,figR,figpath,subjectNameLists,methodOptions,strList,projectName,refType,protocolType,stRange,freqRanges,freqRangeNames,removeMicroSaccadesFlag,useMedianFlagBarPlot,spatialFrequenciesToRemove,useCleanData,useMedianFlagData,subjectNameListTMPstored)
 if ~exist('stRange','var');         stRange = [0.25 0.75];              end
 if ~exist('freqRanges','var')
     freqRanges{1} = [8 12]; freqRangeNames{1} = 'Alpha';
@@ -615,24 +615,24 @@ for i=1:numPowerBins
     pos1 = intersect(find(dataToMatch{1}>=powerBins(i)),find(dataToMatch{1}<powerBins(i+1)));
     pos2 = intersect(find(dataToMatch{2}>=powerBins(i)),find(dataToMatch{2}<powerBins(i+1)));
     [equalPos1,equalPos2] = getEqualNumOfIndices(pos1,pos2);
-    matchedSubjectNameLists{1} = cat(2,matchedSubjectNameLists{1},subjectNameLists{1}(equalPos1));
-    matchedSubjectNameLists{2} = cat(2,matchedSubjectNameLists{2},subjectNameLists{2}(equalPos2));
     if(combinedMatching)
         pos3 = intersect(find(cdataToMatch{1}>=powerBins(i)),find(cdataToMatch{1}<powerBins(i+1)));
         pos4 = intersect(find(cdataToMatch{2}>=powerBins(i)),find(cdataToMatch{2}<powerBins(i+1)));
         [cequalPos1,cequalPos2] = getEqualNumOfIndices(pos3,pos4);
         if(length(cequalPos1) <= length(equalPos1))
-            % Santosh to modify this part
- %           N = length(cequalPos1); N_other = length(equalPos1);
- %           equalPos1 = equalPos1(randperm(N_other,N));
- %           equalPos2 = equalPos2(randperm(N_other,N));
+            % Santosh: modified to remove bugs from this part
+           N = length(cequalPos1); N_other = length(equalPos1);
+           equalPos1 = equalPos1(randperm(N_other,N));
+           equalPos2 = equalPos2(randperm(N_other,N));
         else
             N = length(equalPos1); N_other = length(cequalPos1);
             cequalPos1 = cequalPos1(randperm(N_other,N));
             cequalPos2 = cequalPos2(randperm(N_other,N));
         end
-        matchedSubjectNameLists{3} = cat(2,matchedSubjectNameLists{1},subjectNameLists{1}(cequalPos1));
-        matchedSubjectNameLists{4} = cat(2,matchedSubjectNameLists{2},subjectNameLists{2}(cequalPos2));
+        matchedSubjectNameLists{1} = cat(2,matchedSubjectNameLists{1},subjectNameLists{1}(equalPos1));
+        matchedSubjectNameLists{2} = cat(2,matchedSubjectNameLists{2},subjectNameLists{2}(equalPos2));
+        matchedSubjectNameLists{3} = cat(2,matchedSubjectNameLists{3},subjectNameLists{1}(cequalPos1));
+        matchedSubjectNameLists{4} = cat(2,matchedSubjectNameLists{4},subjectNameLists{2}(cequalPos2));
     end
 end
 end
