@@ -1,4 +1,4 @@
-clc; clear;
+% clc; clear;
 % Mandatory fixed options
 folderSourceString = 'D:\OneDrive - Indian Institute of Science\Supratim\Projects\TLSAEEGProject'; % Indicate the parent folder of decimatedData
 % folderSourceString = 'E:\Santosh\Project codes\TataADProject'; % of decimated data
@@ -9,12 +9,12 @@ pow_label = 'diff'; % 'st' or 'diff' or 'bl' [used for power-matching & regressi
 numControls = []; % for 'unmatched' case in CaseVsControl, [] indicates all the available controls
 combineOppSide = true; % switch to enable mixing of data from both left and right electrode sides
 combinedMatching = true; % switch to enable mean-matching over both the electrode sides and the agegroups
-rejectLowPowSubjs = false; % switch to enable rejection of subjects, with change in power in slow gamma band < 0 dB
+rejectLowPowSubjs = true; % switch to enable rejection of subjects, with change in power in slow gamma band < 0 dB
 
 % newfigpath = 'E:\Santosh\Project codes\TataADProject\Plots\AgeConnectivity\NEWnewPlots'; % path for saving main figures
 newfigpath = fullfile(pwd,'plots'); makeDirectory(newfigpath);
 useMedianFlagData = true; % flag for averaging data across subjects while generating 'topoplot of change in power', 'Conn. topoplot','Conn. profile across subjects','Conn. profile within bins & elecs'
-useMedianFlagBarPlot = 1; % flag for 'bar plots'
+useMedianFlagBarPlot = true; % flag for 'bar plots'
 
 freqRanges{1} = [8 12]; freqRangeNames{1} = 'Alpha'; % alpha
 freqRanges{2} = [20 34]; freqRangeNames{2} = 'Slow gamma'; % slow gamma
@@ -93,7 +93,6 @@ for iSF = 1
                 controlListCaseNumber = cat(2,controlListCaseNumber,i+zeros(1,length(controls)));
                 disp([num2str(i) '. ' subjectName ' (' num2str(age) ',' gender{1} '): ' num2str(length(controls)) ' controls.']);
             end
-            % Method 1
             subjectNameList{1} = unique(controlList); strList{1} = 'Controls';
             subjectNameList{2} = caseList; strList{2} = 'Cases';
             
@@ -108,16 +107,29 @@ for iSF = 1
             strList{2} = 'Cases';
         end      
         niters = 1; % it is USED only in matched case, not otherwise
-        slope_all = cell(1,niters); pvals = cell(1,niters);
-        for connCond = 3%:length(connMethods) % 3->'ppc'
+        selectedIter = []; %[7 22 90] <- found from histogram of iterations;
+        runSelectedIter = ~isempty(selectedIter);
+        if(~runSelectedIter)
+            slope_all = cell(1,niters); pVals_all = cell(1,niters); subjectNameListTMPaccum = cell(1,niters);
+        else
+            subjectNameListTMP_selected = cell(1,numFreqRanges);
+            for k = 1:numFreqRanges % across freqbands
+                subjectNameListTMP_selected{k} = subjectNameListTMPaccum{selectedIter(k)}{k};
+            end
+        end
+        for connCond = 3%1:length(connMethods) % 3->'ppc'
             methodOptions.connMethod = connMethods{connCond};
-            for powCond = 2%1:2
+            for powCond = 1%1:2
                 methodOptions.powcontrolType = powTypes{powCond};
                 for sideToShow = 1%:3 % 1-> Left, 2-> Right, 3-> Back
                     % but with 'combineOppSide' enabled, '1' includes {'1','2'}
+                    if(sideToShow == 3 && powCond == 2)
+                        combineOppSide = false;
+                        combinedMatching = false;
+                    end
                     methodOptions.sideToShow = sideToShow;
-                    methodOptions.combineOppSide = combineOppSide;
-                    methodOptions.combinedMatching = combinedMatching;
+                    methodOptions.combineOppSide = combineOppSide; % whether to combine data for connectivity topoplot and profiles
+                    methodOptions.combinedMatching = combinedMatching; % whether to implement combined mean-matching across the two electrode sides
                     methodOptions.rejectLowPowSubjs = rejectLowPowSubjs;
                     figR = figure('numbertitle','off','name',generateFigName(methodOptions,spatialFrequenciesToRemove));
                     figR.PaperType = 'a4';
@@ -126,22 +138,25 @@ for iSF = 1
                     figR.PaperOrientation = 'Landscape';
                     figR.PaperPosition = [0 0 figR.PaperSize];
                     figR.Color = [1 1 1]; % White background
-                    for iter = 1:niters
-                        disp('Present iteration');
-                        disp(iter);
-                        [slope_all{iter},pvals{iter}] = displayAnalyzedDataConn(pwd,figR,newfigpath,subjectNameListFinal,methodOptions,strList,subProjectName,refType,protocolType,stRange,freqRanges,freqRangeNames,removeMicroSaccadesFlag,useMedianFlagBarPlot,spatialFrequenciesToRemove,useCleanData,useMedianFlagData);
-                    end
-                    if(iter==1)
+                    if(~runSelectedIter || powCond==1)
+                        for iter = 1:niters
+                            disp('Present iteration');
+                            disp(iter);
+                            [slope_all{iter},pVals_all{iter},subjectNameListTMPaccum{iter}] = displayAnalyzedDataConn(pwd,figR,newfigpath,subjectNameListFinal,methodOptions,strList,subProjectName,refType,protocolType,stRange,freqRanges,freqRangeNames,removeMicroSaccadesFlag,useMedianFlagBarPlot,spatialFrequenciesToRemove,useCleanData,useMedianFlagData);
+                        end
+                        print(figR,'-painters',fullfile(newfigpath,generateFigName(methodOptions,spatialFrequenciesToRemove)),'-dtiff','-r300');
+                        if(compCond==1 && powCond==2 && niters > 1)
+                        save(['itersData_' generateFigName(methodOptions,spatialFrequenciesToRemove) '_eachFreq_iters' int2str(niters)],'slope_all','pVals_all','subjectNameListTMPaccum');
+                        end
+                    else
+                        displayAnalyzedDataConn(pwd,figR,newfigpath,subjectNameListFinal,methodOptions,strList,subProjectName,refType,protocolType,stRange,freqRanges,freqRangeNames,removeMicroSaccadesFlag,useMedianFlagBarPlot,spatialFrequenciesToRemove,useCleanData,useMedianFlagData,subjectNameListTMP_selected);
                         print(figR,'-painters',fullfile(newfigpath,generateFigName(methodOptions,spatialFrequenciesToRemove)),'-dtiff','-r300');
                     end
+
                 end
             end
         end
     end
-end
-
-if(niters>1)
-save(['itersData_' generateFigName(methodOptions,spatialFrequenciesToRemove)],'slope_all','pVals_all');
 end
 
 function figName = generateFigName(methodOptions,spatialFrequenciesToRemove)
@@ -155,6 +170,9 @@ for i=1:length(spatialFrequenciesToRemove)
     figName = cat(2,figName,num2str(spatialFrequenciesToRemove(i)));
 end
 figName = cat(2,figName,']');
+if(methodOptions.combinedMatching)
+    figName = cat(2,figName,'_cmbOppSide');
+end
 if(methodOptions.combinedMatching)
     figName = cat(2,figName,'_cmbMatching');
 end
