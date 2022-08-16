@@ -4,7 +4,7 @@
 % subjects. For example, subjectNameList{1} could contain all MCI/AD subjects
 % while subjectNameList{2} could contain all their controls.
 
-function [slope_all,pvals] = displayAnalyzedDataConn(folderSourceString,figR,figpath,subjectNameLists,methodOptions,strList,projectName,refType,protocolType,stRange,freqRanges,freqRangeNames,removeMicroSaccadesFlag,useMedianFlagBarPlot,spatialFrequenciesToRemove,useCleanData,useMedianFlagData,subjectNameListTMPstored)
+function [slope_all,pvals,subjectNameListTMPaccum] = displayAnalyzedDataConn(folderSourceString,figR,figpath,subjectNameLists,methodOptions,strList,projectName,refType,protocolType,stRange,freqRanges,freqRangeNames,removeMicroSaccadesFlag,useMedianFlagBarPlot,spatialFrequenciesToRemove,useCleanData,useMedianFlagData,subjectNameListTMPstored)
 if ~exist('stRange','var');         stRange = [0.25 0.75];              end
 if ~exist('freqRanges','var')
     freqRanges{1} = [8 12]; freqRangeNames{1} = 'Alpha';
@@ -16,12 +16,16 @@ if ~exist('useMedianFlagBarPlot','var');  useMedianFlagBarPlot = 1;     end
 if ~exist('spatialFrequenciesToRemove','var'); spatialFrequenciesToRemove=[];  end
 if ~exist('useCleanData','var');    useCleanData=0;                     end
 if ~exist('useMedianFlagData','var');  useMedianFlagData = 1;           end
+if(~exist('subjectNameListTMPstored','var')); subjectNameListTMPstored = []; end
+
 
 numControls = methodOptions.CaseVsControl.unmatched.numControls;
 numGroups = length(subjectNameLists);
 numFreqRanges = length(freqRanges);
 pow_label = methodOptions.pow_label;
 combinedMatching = methodOptions.combinedMatching;
+computeIterFromSubjects = ~isempty(subjectNameListTMPstored);
+subjectNameListTMPaccum = cell(1,numFreqRanges);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Get Data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 dataForDisplayAllGroups = cell(numGroups,numFreqRanges);
@@ -30,14 +34,34 @@ noGoodControl = false(numFreqRanges,length(subjectNameLists{2})); % for marking 
 
 pow_elec = cell(1,numFreqRanges);
 slopes_elec = cell(1,numFreqRanges);
+subj_label = cell(1,numFreqRanges);
+temp = cell(1,numGroups);
 for i=1:numFreqRanges % analysis done separately for each frequency
     pow_elec{i} = [];  % for regression with connectivity & age
     slopes_elec{i} = []; % for regression with power & age
     if strcmp(methodOptions.comparisonType,'MidVsOld')
+        if(methodOptions.rejectLowPowSubjs)
+            for iGrp =1:2
+                temp{iGrp} = combineAnalyzedDataConn(folderSourceString,subjectNameLists{iGrp},projectName,refType,protocolType,stRange,freqRanges(i),[],removeMicroSaccadesFlag,spatialFrequenciesToRemove,useCleanData);
+                checkSide = @(x)(x(methodOptions.sideToShow) < 0);
+                if i==1 % For alpha, flip the power vals so that we reject the ones with high power (no alpha suppression), but only if the power values are diff
+                    if strcmp(methodOptions.pow_label,'diff')
+                        tmp2 = flipValues(temp{iGrp}.diffPowerAllSubjects);
+                    else
+                        tmp2 = temp{iGrp}.diffPowerAllSubjects;
+                    end
+                    methodOptions.rejectSubjs{iGrp,i} = cellfun(checkSide,tmp2);
+                else
+                    methodOptions.rejectSubjs{iGrp,i} = cellfun(checkSide,temp{iGrp}.diffPowerAllSubjects);
+                end
+                subjectNameLists{iGrp} = subjectNameLists{iGrp}(~methodOptions.rejectSubjs{iGrp,i});
+            end
+        end
         if strcmp(methodOptions.powcontrolType,'unmatched')
             subjectNameListTMP{1} = subjectNameLists{1};
             subjectNameListTMP{2} = subjectNameLists{2};
         elseif strcmp(methodOptions.powcontrolType,'matched')
+            if(~computeIterFromSubjects)
             subjectNameListTMP = getPowerMatchedSubjectLists(folderSourceString,subjectNameLists,projectName,refType,protocolType,stRange,freqRanges(i),methodOptions.sideToShow,pow_label,combinedMatching,removeMicroSaccadesFlag,spatialFrequenciesToRemove,useCleanData);
             if(methodOptions.combineOppSide)
                 if(combinedMatching)
@@ -48,11 +72,18 @@ for i=1:numFreqRanges % analysis done separately for each frequency
                 end
                 subj_division{i}(1) = length(subjectNameListTMP{1}); subj_division{i}(2) = length(csubjectNameListTMP{1});
                 subjectNameListTMP{1} = [subjectNameListTMP{1}  csubjectNameListTMP{1}];
-                subjectNameListTMP{2} = [subjectNameListTMP{2}  csubjectNameListTMP{2}]; 
-            end   
+                subjectNameListTMP{2} = [subjectNameListTMP{2}  csubjectNameListTMP{2}];
+            end
+            subjectNameListTMPaccum{i} = subjectNameListTMP;
+            else
+                 subjectNameListTMP = subjectNameListTMPstored{i};
+                 subj_division{i}(1) = length(subjectNameListTMPstored{i}{3}); subj_division{i}(2) = length(subjectNameListTMPstored{i}{4});
+            end
         end
+        
         dataForDisplayAllGroups{1,i} = combineAnalyzedDataConn(folderSourceString,subjectNameListTMP{1},projectName,refType,protocolType,stRange,freqRanges(i),methodOptions.connMethod,removeMicroSaccadesFlag,spatialFrequenciesToRemove,useCleanData);
         dataForDisplayAllGroups{2,i} = combineAnalyzedDataConn(folderSourceString,subjectNameListTMP{2},projectName,refType,protocolType,stRange,freqRanges(i),methodOptions.connMethod,removeMicroSaccadesFlag,spatialFrequenciesToRemove,useCleanData);
+        
         selElecSide = @(x)(x(methodOptions.sideToShow));
         if(strcmp(methodOptions.pow_label,'st'))
             pow_elec{i} = cellfun(selElecSide,dataForDisplayAllGroups{1,i}.stPowerAllSubjects);
@@ -139,14 +170,15 @@ for i=1:numFreqRanges % analysis done separately for each frequency
                     findBestControl = cat(2,findBestControl,validSubjs(absDiffPowerValid==min(absDiffPowerValid)));
                 end
                 dataForDisplayAllGroupsTMP{1,iCase} = combineAnalyzedDataConn(folderSourceString,subjectNameLists{1}{iCase}(findBestControl),projectName,refType,protocolType,stRange,freqRanges(i),methodOptions.connMethod,removeMicroSaccadesFlag,spatialFrequenciesToRemove,useCleanData);
-            end
-            if(isempty(findBestControl))
-                noGoodControl(i,iCase) = true;
+                if(isempty(findBestControl))
+                    noGoodControl(i,iCase) = true;
+                end
+                dataForDisplayAllGroupsTMP = dataForDisplayAllGroupsTMP(:,~noGoodControl(i,:));
             end
         end
-        dataForDisplayAllGroupsTMP = dataForDisplayAllGroupsTMP(:,~noGoodControl(i,:));
-        dataForDisplayAllGroups{1,i} = combinedData(dataForDisplayAllGroupsTMP(1,:),methodOptions.powcontrolType,methodOptions.combineOppSide);
-        dataForDisplayAllGroups{2,i} = combinedData(dataForDisplayAllGroupsTMP(2,:),methodOptions.powcontrolType,methodOptions.combineOppSide);
+        
+        dataForDisplayAllGroups{1,i} = combinedData(dataForDisplayAllGroupsTMP(1,:),methodOptions.combineOppSide);
+        dataForDisplayAllGroups{2,i} = combinedData(dataForDisplayAllGroupsTMP(2,:),methodOptions.combineOppSide);
         selElecSide = @(x)(x(methodOptions.sideToShow));
         if(strcmp(methodOptions.pow_label,'st'))
             pow_elec{i} = cellfun(selElecSide,dataForDisplayAllGroups{2,i}.stPowerAllSubjects);
@@ -157,22 +189,28 @@ for i=1:numFreqRanges % analysis done separately for each frequency
         end
     end
     
-    selectLeftRight = @(x)(x{1}(1:2)); % selecting left and right electrode groups
+    
     if(strcmp(methodOptions.comparisonType,'CaseVsControl') && methodOptions.rejectLowPowSubjs) % discarding cases if needed
+        if(methodOptions.combineOppSide)
+            selectSides = @(x)(x([methodOptions.sideToShow getOppSide(methodOptions.sideToShow)])); % selecting left and right electrode groups
+            repCases = 2;
+        else
+            selectSides = @(x)(x(methodOptions.sideToShow));
+            repCases = 1;
+        end
         numCases = size(dataForDisplayAllGroups{2,i}.connAllSubjects,1);
-        pow_bothSides = cellfun(selectLeftRight,dataForDisplayAllGroups{2,i}.diffPowerAllSubjects,'UniformOutput',false);
+        pow_bothSides = cellfun(selectSides,dataForDisplayAllGroups{2,i}.diffPowerAllSubjects,'UniformOutput',false);
         avgPow = mean(cell2mat(pow_bothSides'),1); 
         if i==1 && strcmp(methodOptions.pow_label,'diff')
             goodCases = avgPow(~noGoodControl(i,:)) < 0; % criteria for detecting cases with alpha pow < 0 dB
         else
             goodCases = avgPow(~noGoodControl(i,:)) > 0; % criteria for detecting cases with SG/FG pow > 0 dB
         end
-        % Santosh to modify
-        out(1,:) = selectCases(dataForDisplayAllGroups(1,:),[goodCases goodCases]); % repition is to account for both the electrode sides
-        out(2,:) = selectCases(dataForDisplayAllGroups(2,:),goodCases);
-        dataForDisplayAllGroups = out;
+        out{1,1} = selectCases(dataForDisplayAllGroups{1,i},repmat(goodCases,1,repCases)); % repitition is to account for both the electrode sides
+        out{2,1} = selectCases(dataForDisplayAllGroups{2,i},goodCases);
+        dataForDisplayAllGroups(:,i) = out;
         subj_division{i} = [nnz(goodCases) nnz(goodCases)];
-        fprintf('Out of %d cases, %d cases are selected\n',numCases,nnz(goodCases));
+        fprintf('Out of %d cases, %d cases are selected - in %s \n',numCases,nnz(goodCases),freqRangeNames{i});
     end
 end
 
@@ -209,15 +247,20 @@ elseif(strcmp(methodOptions.connMethod,'plv'))
 elseif(strcmp(methodOptions.connMethod,'ppc'))
     barLims = [0 0.6];
 end
-xtickSet = [-1:0.5:1];
+xtickSet = -1:0.5:1;
 ElecGLabels = {'Left', 'Right', 'Back'};
 bN = 1000; % number of bootstrap iterations for median SEM
 freqVals = dataForDisplayAllGroups{1,1}.freqVals;
 alphaErrorbar = 0.65; % transparency level for errorbars in connectivity with inter-electrode distance plot
 connProfile_pvalThres = 0.01;
+if(methodOptions.combineOppSide)
+    nelecSides = 2; % "Left" and "Right" (Left and Right combined is not considered. If considered, it would be 3)
+else
+    nelecSides = 1;
+end
 
 % Santosh to add this function
-if strcmp(methodOptions.comparisonType,'MidVsOld') && strcmp(methodOptions.powcontrolType,'unmatched')
+if strcmp(methodOptions.comparisonType,'MidVsOld') && strcmp(methodOptions.powcontrolType,'unmatched') && ~(methodOptions.rejectLowPowSubjs)
     Fig1_sampleSubject(dataForDisplayAllGroups{2,2},113,chanlocs,elecGroups,freqRanges{2},figpath);
 end
 
@@ -230,10 +273,11 @@ if(strcmp(methodOptions.powcontrolType,'unmatched'))
     plotTopo{1} = getPlotHandles(3,2,[0.05 0.1 0.20 0.8],0.01,0.01,1); % power topoplots
     plotTopo{2} = getPlotHandles(3,2,[0.30 0.1 0.22 0.8],0.01,0.01,1); % conn topoplots
     plotTopo{3} = getPlotHandles(3,1,[0.58 0.1 0.10 0.8],0.01,0.01,1); % conn-distance profile
-    plotTopo{4} = getPlotHandles(3,3,[0.72 0.1 0.26 0.8],0.01,0.01,1); % bar plot - one side
-    for freqBand = 1:3
+    plotTopo{4} = getPlotHandles(3,2,[0.72 0.1 0.26 0.8],0.01,0.01,1); % bar plot - left & right
+    for freqBand = 1:numFreqRanges
         % 1. change in power topoplots
-        for iGrp = 1:2
+        tbinned_Y = cell(1,numGroups); h = cell(1,numGroups); binned_Y = cell(1,numGroups); 
+        for iGrp = 1:numGroups
             axS = subplot(plotTopo{1}(freqBand,iGrp));
             selpowTopos = dataForDisplayAllGroups{iGrp,freqBand}.diffPowerTopoAllSubjects;
             if(useMedianFlagData)
@@ -250,7 +294,7 @@ if(strcmp(methodOptions.powcontrolType,'unmatched'))
             end
             if(freqBand == 1)
                 title(strList{1},'FontSize',displaySettings.fontSizeLarge,'FontWeight','normal');
-                if(iGrp == 2)
+                if(iGrp == numGroups)
                     cbr = colorbar(axS);
                     cbr.Position = cbr.Position + [0.07 -0.02 0.0015 0.07];
                     cbr.FontSize = displaySettings.fontSizeLarge;
@@ -263,19 +307,20 @@ else % 'matched' case
     plotTopo{1} = getPlotHandles(3,1,[0.05 0.1 0.20 0.8],0.01,0.01,1); % del. psd - one side
     plotTopo{2} = getPlotHandles(3,2,[0.30 0.1 0.22 0.8],0.01,0.01,1); % conn topoplots
     plotTopo{3} = getPlotHandles(3,1,[0.58 0.1 0.10 0.8],0.01,0.01,1); % conn-distance profile
-    plotTopo{4} = getPlotHandles(3,3,[0.72 0.1 0.26 0.8],0.01,0.01,1); % bar plot - one side
-    for freqBand = 1:3
+    plotTopo{4} = getPlotHandles(3,2,[0.72 0.1 0.26 0.8],0.01,0.01,1); % bar plot - left & right
+    for freqBand = 1:numFreqRanges
         % 1. change in PSD traces
         subplot(plotTopo{1}(freqBand)); hold on;
-        line([0 100],[0 0],'Color','k');
-        for iGrp = 1:2
+        line([0 100],[0 0],'Color','k','HandleVisibility','off');
+        Nsubs = zeros(1,numGroups);
+        for iGrp = 1:numGroups
             BLpsd_allSubjs = cell2mat(dataForDisplayAllGroups{iGrp,freqBand}.logBLPowerVsFreqAllSubjects(:,elecClusterSide));
             STpsd_allSubjs = cell2mat(dataForDisplayAllGroups{iGrp,freqBand}.logSTPowerVsFreqAllSubjects(:,elecClusterSide));
-            if(methodOptions.combineOppSide)
+            if(methodOptions.combineOppSide && methodOptions.sideToShow~=3)
                 cBLpsd_allSubjs = cell2mat(dataForDisplayAllGroups{iGrp,freqBand}.logBLPowerVsFreqAllSubjects(:,getOppSide(elecClusterSide)));
                 cSTpsd_allSubjs = cell2mat(dataForDisplayAllGroups{iGrp,freqBand}.logSTPowerVsFreqAllSubjects(:,getOppSide(elecClusterSide)));
-                    BLpsd = nanmean([BLpsd_allSubjs; cBLpsd_allSubjs],1);
-                    STpsd = nanmean([STpsd_allSubjs; cSTpsd_allSubjs],1);
+                BLpsd = nanmean([BLpsd_allSubjs; cBLpsd_allSubjs],1);
+                STpsd = nanmean([STpsd_allSubjs; cSTpsd_allSubjs],1);
             else
                     BLpsd = nanmean(BLpsd_allSubjs,1);
                     STpsd = nanmean(STpsd_allSubjs,1);
@@ -298,7 +343,7 @@ else % 'matched' case
         end
         line([freqRanges{freqBand}(1) freqRanges{freqBand}(1)],[-20 20],'LineStyle','--','Color','k');
         line([freqRanges{freqBand}(2) freqRanges{freqBand}(2)],[-20 20],'LineStyle','--','Color','k');
-        if(freqBand == 3)
+        if(freqBand == numFreqRanges)
             ylabel({[freqRangeNames{freqBand}],'Change in power'});
         else
             ylabel({[freqRangeNames{freqBand}],'',''});
@@ -307,62 +352,53 @@ else % 'matched' case
     end
 end
 
-% Replace 3 by numFreqRanges
-slope_all = cell(3,3);
-pvals = zeros(3,3); % freqBands x elecSides
-Nsubs = zeros(2,3); % Grps x freqBands
-for freqBand = 1:3
+slope_all = cell(numFreqRanges,nelecSides);
+pvals = zeros(numFreqRanges,nelecSides); % freqBands x elecSides
+Nsubs = zeros(numGroups,numFreqRanges); % computed from 'binnedMeanConn', used for the legend
+for freqBand = 1:numFreqRanges
     % 2. conn topoplots
-    binnedMeanConn = cell(numGroups,1);
     tbinnedMeanConn = cell(numGroups,1);
-    nSubs = zeros(2,3);
-    for iGrp = 1:2
+    nSubs = zeros(numGroups,nelecSides); % tracking subjects for each elecSide
+    % computed from 'slope_elecAvg', used for swarmchart plot
+    for iGrp = 1:numGroups
         axS = subplot(plotTopo{2}(freqBand,iGrp));
         ConnData = dataForDisplayAllGroups{iGrp,freqBand}.connFreqBandsAllSubjects;
         if(methodOptions.combineOppSide)
             elecClusterSides = [elecClusterSide getOppSide(elecClusterSide)];
-            if(strcmp(methodOptions.powcontrolType,'unmatched'))
-                ppcConn{1} = ConnData(:,elecClusterSides(1));
-                ppcConn{2} = mirrorTopoplotData(ConnData(:,elecClusterSides(2)));
-            else % 'matched'
-                if(strcmp(methodOptions.comparisonType,'MidVsOld'))
+            if(strcmp(methodOptions.comparisonType,'MidVsOld'))
+                if(strcmp(methodOptions.powcontrolType,'unmatched'))
+                    ppcConn{1} = ConnData(:,elecClusterSides(1));
+                    ppcConn{2} = mirrorTopoplotData(ConnData(:,elecClusterSides(2)));
+                else % 'matched'
                     ppcConn{1} = ConnData(1:subj_division{freqBand}(1),elecClusterSides(1));
                     ppcConn{2} = mirrorTopoplotData(ConnData((subj_division{freqBand}(1)+1):(subj_division{freqBand}(1)+subj_division{freqBand}(2)),elecClusterSides(2)));
-                else
-                    if(iGrp==1) % control
-                        ppcConn{1} = ConnData(1:subj_division{freqBand}(1),elecClusterSides(1));
-                        ppcConn{2} = mirrorTopoplotData(ConnData((subj_division{freqBand}(1)+1):(subj_division{freqBand}(1)+subj_division{freqBand}(2)),elecClusterSides(2)));
-                    else % cases (Grp==2)
-                        ppcConn{1} = ConnData(:,elecClusterSides(1));
-                        ppcConn{2} = mirrorTopoplotData(ConnData(:,elecClusterSides(2)));
-                    end
+                end
+            else
+                if(iGrp==1) % control
+                    ppcConn{1} = ConnData(1:subj_division{freqBand}(1),elecClusterSides(1));
+                    ppcConn{2} = mirrorTopoplotData(ConnData((subj_division{freqBand}(1)+1):(subj_division{freqBand}(1)+subj_division{freqBand}(2)),elecClusterSides(2)));
+                else % cases (Grp==2)
+                    ppcConn{1} = ConnData(:,elecClusterSides(1));
+                    ppcConn{2} = mirrorTopoplotData(ConnData(:,elecClusterSides(2)));
                 end
             end
-        if(useMedianFlagData)
-            outConn = nanmedian([cell2mat(ppcConn{1}') cell2mat(ppcConn{2}')],2);
-        else
-            outConn = nanmean([cell2mat(ppcConn{1}') cell2mat(ppcConn{2}')],2);
-        end
-        tbinnedMeanConn{iGrp}{1} = getMeanConn(ppcConn{1},elecGroups{elecClusterSide},chanlocs,meanAnglLimits);
-        tbinnedMeanConn{iGrp}{2} = getMeanConn(ppcConn{2},elecGroups{elecClusterSide},chanlocs,meanAnglLimits);
-        if(strcmp(methodOptions.powcontrolType,'unmatched') || (strcmp(methodOptions.powcontrolType,'matched') && combinedMatching))
-            for k = 1:length(tbinnedMeanConn{iGrp}{1})
-                binnedMeanConn{iGrp}{k} = nanmean([tbinnedMeanConn{iGrp}{1}{k}; tbinnedMeanConn{iGrp}{2}{k}],1);
+            if(useMedianFlagData)
+                outConn = nanmedian([cell2mat(ppcConn{1}') cell2mat(ppcConn{2}')],2);
+            else
+                outConn = nanmean([cell2mat(ppcConn{1}') cell2mat(ppcConn{2}')],2);
             end
-        else % matched && (~combinedMatching)
-            binnedMeanConn{iGrp} = [tbinnedMeanConn{iGrp}{1} tbinnedMeanConn{iGrp}{2}]; % because 'matched' subjects can't be averaged (different number of subjects for each side)
-        end
-        tbinnedMeanConn{iGrp}{3} = binnedMeanConn{iGrp}; % combined "meanConn" (across left & right)
-        else % ~(methodOptions.combineOppSide)
+            tbinnedMeanConn{iGrp}{1} = getMeanConn(ppcConn{1},elecGroups{elecClusterSide},chanlocs,meanAnglLimits);
+            tbinnedMeanConn{iGrp}{2} = getMeanConn(ppcConn{2},elecGroups{elecClusterSide},chanlocs,meanAnglLimits);
+        else % ~(methodOptions.combineOppSide) used for "back" side
             ppcConn = ConnData(:,elecClusterSide);
             if(useMedianFlagData)
                 outConn = nanmedian(cell2mat(ppcConn'),2);
             else
                 outConn = nanmean(cell2mat(ppcConn'),2);
             end
-            binnedMeanConn{iGrp} = getMeanConn(ppcConn,elecGroups{elecClusterSide},chanlocs,meanAnglLimits);
+            tbinnedMeanConn{iGrp}{1} = getMeanConn(ppcConn,elecGroups{elecClusterSide},chanlocs,meanAnglLimits); %binnedMeanConn{iGrp}
         end
-        Nsubs(iGrp,freqBand) = length(binnedMeanConn{iGrp});
+        Nsubs(iGrp,freqBand) = length(tbinnedMeanConn{iGrp}{1});
         
         topoplot(outConn,chanlocs,'emarker',{'.','k',10,1}); hold on;
         topoplot_santosh(outConn,chanlocs,'style','contour','plotrad',0.5,'headrad',0,'ccolor','r','numcontour',3); % for drawing 25% contour
@@ -408,18 +444,18 @@ for freqBand = 1:3
         hold on;
     end
     if(freqBand==3)
-        set(plotTopo{3}(freqBand),'XTick',xtickSet,'YTick',[cLims(1):(diff(cLims)/2):cLims(2)],'XTicklabel',xtickSet,'YTicklabel',[cLims(1):(diff(cLims)/2):cLims(2)],'TickLength',[0.02 0.025],'FontSize',displaySettings.fontSizeLarge);
+        set(plotTopo{3}(freqBand),'XTick',xtickSet,'YTick',(cLims(1):(diff(cLims)/2):cLims(2)),'XTicklabel',xtickSet,'YTicklabel',(cLims(1):(diff(cLims)/2):cLims(2)),'TickLength',[0.02 0.025],'FontSize',displaySettings.fontSizeLarge);
         xlabel(plotTopo{3}(freqBand),'cos( \Delta \theta)','FontSize',13,'Interpreter','tex');
         ytickformat('%.2f');
     else
         if(freqBand == 1)
             title([upper(methodOptions.connMethod) ' connectivity'],'FontSize',displaySettings.fontSizeLarge,'FontWeight','normal');
         end
-        set(plotTopo{3}(freqBand),'XTick',xtickSet,'YTick',[cLims(1):(diff(cLims)/2):cLims(2)],'XTicklabel',[],'YTicklabel',[],'TickLength',[0.02 0.025],'FontSize',displaySettings.fontSizeLarge);
+        set(plotTopo{3}(freqBand),'XTick',xtickSet,'YTick',(cLims(1):(diff(cLims)/2):cLims(2)),'XTicklabel',[],'YTicklabel',[],'TickLength',[0.02 0.025],'FontSize',displaySettings.fontSizeLarge);
     end
     
     if(strcmp(methodOptions.powcontrolType,'unmatched'))
-        if(freqBand == 3)
+        if(freqBand == numFreqRanges)
             lgdSpread = legend('show');
             lgdSpread.String = concatStrnum(strList,Nsubs(:,freqBand));
             lgdSpread.FontSize = 8;        
@@ -437,6 +473,7 @@ for freqBand = 1:3
     % plotting significance label above each bin (stat. test)
     binEdges = -1:plotBinWidth:1;
     binned_binX = binEdges(1:end-1)+(plotBinWidth/2);
+    pval_bin = zeros(size(binEdges));
     for binIndx = 1:size(binned_Y{1},2)
         d = [binned_Y{1}(:,binIndx); binned_Y{2}(:,binIndx)];
         group = [zeros(size(binned_Y{1},1),1); ones(size(binned_Y{2},1),1)];
@@ -449,9 +486,9 @@ for freqBand = 1:3
     end
     
     % 4. Bar plots
-    slope_elecAvg = cell(1,3);
-    for elecSide=1:3 
-        for iGrp = 1:2
+    slope_elecAvg = cell(1,nelecSides);
+    for elecSide=1:nelecSides
+        for iGrp = 1:numGroups
             slope_elecAvg{elecSide}{iGrp} = nanmean(cell2mat(tbinnedMeanConn{iGrp}{elecSide}'),2); % averaging across individual electrodes
             nSubs(iGrp,elecSide) = length(slope_elecAvg{elecSide}{iGrp});
         end
@@ -459,29 +496,31 @@ for freqBand = 1:3
     
     % storing slope values for regression
     if strcmp(methodOptions.comparisonType,'MidVsOld')
-        for iGrp = 1:2
-            slopes_elec{freqBand} = [slopes_elec{freqBand}; slope_elecAvg{3}{iGrp}]; % for regression
-        end
+        class_label = [0 1];
+            for iGrp = 1:numGroups
+                slopes_elec{freqBand} = [slopes_elec{freqBand}; slope_elecAvg{1}{iGrp}]; % for regression
+                subj_label{freqBand} = [subj_label{freqBand}; class_label(iGrp)*ones(size(slope_elecAvg{1}{iGrp}))];
+            end
     else
-        slopes_elec{freqBand} =  slope_elecAvg{3}{2}; % saving slopes for only cases
+        slopes_elec{freqBand} =  slope_elecAvg{1}{2}; % saving slopes for only cases {elecSide}{casesGroup}
     end
     
     % saving for a scatter of healthy and MCI, AD
     if(strcmp(methodOptions.powcontrolType,'unmatched')) % only then all the subjects would be considered
         if strcmp(methodOptions.comparisonType,'MidVsOld')
-            save([methodOptions.comparisonType '_' pow_label '_' methodOptions.connMethod '_' ElecGLabels{methodOptions.sideToShow} '.mat'],'pow_elec','slopes_elec');
+            save([methodOptions.comparisonType '_' pow_label '_' methodOptions.connMethod '_' ElecGLabels{methodOptions.sideToShow} '.mat'],'pow_elec','slopes_elec','subj_label','methodOptions');
         else
-        save([methodOptions.comparisonType '_' pow_label '_' methodOptions.connMethod '_' ElecGLabels{methodOptions.sideToShow} '_' methodOptions.caseType '.mat'],'pow_elec','slopes_elec'); 
+            save([methodOptions.comparisonType '_' pow_label '_' methodOptions.connMethod '_' ElecGLabels{methodOptions.sideToShow} '_' methodOptions.caseType '.mat'],'pow_elec','slopes_elec','methodOptions');
         end
     end
     
     barWidth = diff(barLims);
-    yticking = [barLims(1):(barWidth/2):barLims(2)];
+    yticking = (barLims(1):(barWidth/2):barLims(2));
     pval_y = yticking(end)-(yticking(end)/10);
     slope_all(freqBand,:) = slope_elecAvg;
     
     %%%%%% barplots %%%%%%
-    for elecSide = 1:3 % Left, Right & Combined
+    for elecSide = 1:nelecSides % Left, Right
     subplot(plotTopo{4}(freqBand,elecSide)); % Left side
     slope_extracted = slope_elecAvg{elecSide};
     if(strcmp(methodOptions.comparisonType,'MidVsOld'))
@@ -490,7 +529,7 @@ for freqBand = 1:3
             bar([1 2],[nanmedian(slope_extracted{1}) nanmedian(slope_extracted{2})],'FaceAlpha',0.2); hold on;
             SEMdata = @(data,bN)(getSEMedian(rmmissing(data),bN));
             errorbar([1 2],[nanmedian(slope_extracted{1}) nanmedian(slope_extracted{2})],[SEMdata(slope_extracted{1},bN) SEMdata(slope_extracted{2},bN)] ,'o','Color','#CB4779','MarkerFaceColor','w','LineWidth',1.5);
-            pvals(freqBand,elecSide) = compare_unequalSets(slope_extracted{1},slope_extracted{2},4);
+            pvals(freqBand,elecSide) = compare_unequalSets(slope_extracted{1},slope_extracted{2});
         else
             bar([1 2],[nanmean(slope_extracted{1}) nanmean(slope_extracted{2})],'FaceAlpha',0.2); hold on;
             SEMdata = @(data)std(data,[],1)/sqrt(size(data,1));
@@ -510,10 +549,14 @@ for freqBand = 1:3
         end
         set(plotTopo{4}(freqBand,elecSide),'box','off');
     end
-    text(0.5,pval_y,['p = ' num2str(pvals(freqBand,elecSide),'%.3f')],'Clipping','on');
+    if(freqBand == 2)
+        text(0.5,pval_y,['p = ' num2str(pvals(freqBand,elecSide),'%.4f')],'Clipping','on');
+    else
+        text(0.5,pval_y,['p = ' num2str(pvals(freqBand,elecSide),'%.3f')],'Clipping','on');
+    end
     ylim(barLims);
     
-    if(freqBand==3 && elecSide==1)
+    if(freqBand==numFreqRanges && elecSide==1)
         set(plotTopo{4}(freqBand,elecSide),'XTick',[1 2],'YTick',yticking,'XTicklabel',strList,'YTicklabel',yticking,'TickLength',[0.02, 0.025],'XTickLabelRotation',20);
         ytickformat('%.2f');
     else
@@ -529,10 +572,10 @@ end
 % generating connectivity vs. inter-electrode distance profile for each
 % case and corresponding control subject
 if(strcmp(methodOptions.comparisonType,'CaseVsControl'))
-for freqBand = 1:3
-    figR2 = plotIndivSubjConnProfiles(dataForDisplayAllGroups(:,freqBand),elecClusterSide,methodOptions,elecGroups{elecClusterSide},chanlocs,useMedianFlagData); % dataForDisplayAllGroups(:,freqBand), elecGroups{elecClusterSide}
-    print(figR2,'-painters',fullfile(figpath,['Fig5_EachSubj_' methodOptions.powcontrolType '_' freqRangeNames{freqBand} '_' methodOptions.connMethod '_' ElecGLabels{elecClusterSide}]),'-dtiff','-r300');
-end
+% for freqBand = 1:numFreqRanges
+%     figR2 = plotIndivSubjConnProfiles(dataForDisplayAllGroups(:,freqBand),elecClusterSide,methodOptions,elecGroups{elecClusterSide},chanlocs,useMedianFlagData); % dataForDisplayAllGroups(:,freqBand), elecGroups{elecClusterSide}
+%     print(figR2,'-painters',fullfile(figpath,['Fig5_EachSubj_' methodOptions.powcontrolType '_' freqRangeNames{freqBand} '_' methodOptions.connMethod '_' ElecGLabels{elecClusterSide}]),'-dtiff','-r300');
+% end
 
 else  % for 'MidVsOld' condition
     % Scatter plot of "change in pow" vs. "slope"
@@ -543,8 +586,8 @@ else  % for 'MidVsOld' condition
     else % 'st' condition settings
         t_xpos = [10 -1 -5];
     end
-    for freqBand = 1:3
-        subplot(3,1,freqBand);
+    for freqBand = 1:numFreqRanges
+        subplot(numFreqRanges,1,freqBand);
         scatter(pow_elec{freqBand},slopes_elec{freqBand},30,'filled');
         mdl = fitlm(pow_elec{freqBand},slopes_elec{freqBand});
         bCoeffs = table2array(mdl.Coefficients(:,1));
@@ -611,6 +654,8 @@ powerBins = [powerBins powerBins(numPowerBins)+d];
 
 matchedSubjectNameLists{1} = [];
 matchedSubjectNameLists{2} = [];
+matchedSubjectNameLists{3} = [];
+matchedSubjectNameLists{4} = [];
 for i=1:numPowerBins
     pos1 = intersect(find(dataToMatch{1}>=powerBins(i)),find(dataToMatch{1}<powerBins(i+1)));
     pos2 = intersect(find(dataToMatch{2}>=powerBins(i)),find(dataToMatch{2}<powerBins(i+1)));
@@ -659,18 +704,13 @@ else %N1>N2
     x2 = x1(sort(randVals(1:N2)));
 end
 end
-function out = combinedData(input,powcontrolType,combineSides)
-if(strcmp(powcontrolType,'matched'))
-    if(~combineSides)
-        dataCase = averageAllSubjects(input,0);
-    else
-        dataCase = input;
-    end
-    out = structCatAllSubjects(dataCase,combineSides);
+function out = combinedData(input,combineSides)
+if(combineSides)
+    dataCase = input;
 else
     dataCase = averageAllSubjects(input,0);
-    out = structCatAllSubjects(dataCase,0);
 end
+out = structCatAllSubjects(dataCase,combineSides);
 end
 function out = averageAllSubjects(data,useMedianFlag)
 nCases = length(data);
@@ -717,7 +757,7 @@ else
     for iCase = 1:nCases
         out.logBLPowerVsFreqAllSubjects(iCase,:) = data{iCase}.logBLPowerVsFreqAllSubjects(1,:);
         out.logSTPowerVsFreqAllSubjects(iCase,:) = data{iCase}.logSTPowerVsFreqAllSubjects(1,:);
-        out.diffPowerAllSubjects(iCase,:) = {data{iCase}.diffPowerAllSubjects(1,:)};
+        out.diffPowerAllSubjects(iCase,:) = data{iCase}.diffPowerAllSubjects(1,:);
         out.diffPowerTopoAllSubjects(iCase,:) = data{iCase}.diffPowerTopoAllSubjects(1,1); % note the difference
         out.stPowerTopoAllSubjects(iCase,:) = {data{iCase}.stPowerTopoAllSubjects(1,:)};
         out.connAllSubjects(iCase,:) = data{iCase}.connAllSubjects(1,:);
@@ -728,7 +768,7 @@ else
     for iCase = 1:nCases
         out.logBLPowerVsFreqAllSubjects(nCases+iCase,:) = data{iCase}.logBLPowerVsFreqAllSubjects(2,:);
         out.logSTPowerVsFreqAllSubjects(nCases+iCase,:) = data{iCase}.logSTPowerVsFreqAllSubjects(2,:);
-        out.diffPowerAllSubjects(nCases+iCase,:) = {data{iCase}.diffPowerAllSubjects(2,:)};
+        out.diffPowerAllSubjects(nCases+iCase,:) = data{iCase}.diffPowerAllSubjects(2,:);
         out.diffPowerTopoAllSubjects(nCases+iCase,:) = data{iCase}.diffPowerTopoAllSubjects(2,1);
         out.stPowerTopoAllSubjects(nCases+iCase,:) = {data{iCase}.stPowerTopoAllSubjects(2,:)};
         out.connAllSubjects(nCases+iCase,:) = data{iCase}.connAllSubjects(2,:);
@@ -743,6 +783,8 @@ cLims = [0 1]; plotBinWidth = 0.25; distXlim = [-1 1]; fontSize = 10;
 numValidCases = length(dataForDisplayAllGroups{2}.connFreqBandsAllSubjects);
 ageList = methodOptions.CaseVsControl.ageList;
 genderList = methodOptions.CaseVsControl.genderList;
+numGroups = length(dataForDisplayAllGroups);
+binned_Y = cell(1,numGroups);
 % Plotting each subject (in rows) profiles for respective electrodeSides (in columns)
 figR2 = figure('numbertitle', 'off','name','Figure Supp: CaseVsControl IndvSubj Conn profile');
 figR2.PaperType = 'a4';
@@ -776,17 +818,17 @@ for caseIndx = 1:numValidCases
         else
             %% plotSide == 2
             clear binned_Y;
-            for iGrp = 1:2
+            for iGrp = 1:numGroups
                 [~,binned_Y{iGrp}] = plotIndivConnData(dataForDisplayAllGroups{iGrp}.connFreqBandsAllSubjects(caseIndx,elecClusterSide),plotBinWidth,refElecs,chanlocs,colorMrkr{iGrp},medianFlag); hold on;
                 set(plotTopoSup(caseIndx,plotSide),'Xdir','reverse');
                 ylim(cLims);
                 xlim(distXlim);
             end
         end
-        xlimsSet = [-1:0.5:1];
+        xlimsSet = (-1:0.5:1);
         if(plotSide==3)
             if(caseIndx == numValidCases)
-                set(plotTopoSup(caseIndx,plotSide),'XTick',xlimsSet,'YTick',[cLims(1):(diff(cLims)/2):cLims(2)],'XTicklabel',xlimsSet,'YTicklabel',[cLims(1):(diff(cLims)/2):cLims(2)],'TickLength',[0.02 0.025],'FontSize',fontSize);
+                set(plotTopoSup(caseIndx,plotSide),'XTick',xlimsSet,'YTick',(cLims(1):(diff(cLims)/2):cLims(2)),'XTicklabel',xlimsSet,'YTicklabel',(cLims(1):(diff(cLims)/2):cLims(2)),'TickLength',[0.02 0.025],'FontSize',fontSize);
                 xlabel(plotTopoSup(caseIndx,plotSide),'cos( \Delta \theta)','FontSize',13,'Interpreter','tex');
                 ytickformat('%.2f');
                 lgdSpread = legend('show');
@@ -796,7 +838,7 @@ for caseIndx = 1:numValidCases
                 lgdSpread.Box = 'off';
                 lgdSpread.LineWidth = 0.3;
             else
-                set(plotTopoSup(caseIndx,plotSide),'XTick',xlimsSet,'YTick',[cLims(1):(diff(cLims)/2):cLims(2)],'XTicklabel',[],'YTicklabel',[],'TickLength',[0.02 0.025],'FontSize',fontSize);
+                set(plotTopoSup(caseIndx,plotSide),'XTick',xlimsSet,'YTick',(cLims(1):(diff(cLims)/2):cLims(2)),'XTicklabel',[],'YTicklabel',[],'TickLength',[0.02 0.025],'FontSize',fontSize);
             end
         end
         if(plotSide == 3)
@@ -806,7 +848,7 @@ for caseIndx = 1:numValidCases
         end
     end
     subplot(plotTopoSup(caseIndx,4)); % del PSDs
-    for iGrp=1:2
+    for iGrp=1:numGroups
         BLpsd_allSubjs = (dataForDisplayAllGroups{iGrp}.logBLPowerVsFreqAllSubjects{caseIndx,elecClusterSide});
         STpsd_allSubjs = (dataForDisplayAllGroups{iGrp}.logSTPowerVsFreqAllSubjects{caseIndx,elecClusterSide});
         BLpsd = nanmean(BLpsd_allSubjs,1);
@@ -817,7 +859,7 @@ for caseIndx = 1:numValidCases
         caxis([-1 1]);
     end
     subplot(plotTopoSup(caseIndx,5));
-    for iGrp = 1:2
+    for iGrp = 1:numGroups
         topoD = (dataForDisplayAllGroups{iGrp}.diffPowerTopoAllSubjects{caseIndx});
         topoplot_murty(topoD,chanlocs,'electrodes','off','style','blank','drawaxis','off','emarker',{'.','k',10,1},'emarkercolors',topoD);
     end
@@ -828,6 +870,7 @@ function out = findValidIndx(connFreqBandsAllSubjects,sideToShow,varargin)
 rejectIndx = false(size(connFreqBandsAllSubjects,1),1);
 elecThres = 40;
 rejectPowSubjs = false(size(connFreqBandsAllSubjects,1),1);
+
 for i = 1:size(connFreqBandsAllSubjects,1) % across subjects
     finalConn = squeeze(nanmean(connFreqBandsAllSubjects{i,sideToShow},2)); % across freqBands
     if(length(find(isnan(finalConn))) > elecThres)
@@ -858,7 +901,6 @@ end
 function out = selectFreqBandConnAvg(input)
 out = squeeze(nanmean(input(1,:,:),2)); % averaging across electrodes in this cluster
 end
-
 function [h,mean_binY2] = plotIndivConnData(allConn,binWidth,elecGroup,chanlocs,colorMrkr,medianFlag,plotSwitch)
 if ~exist('plotSwitch','var');    plotSwitch = 1;       end
 connectDiscrete =  '-o';
@@ -867,8 +909,10 @@ binEdges = -1:binWidth:1;
 nbins = length(binEdges)-1;
 binned_binX = binEdges(1:end-1)+(binWidth/2);
 loc = getElecLocAngles(chanlocs);
+mean_binY1 = zeros(length(elecGroup),nbins);
+mean_binY2 = zeros(length(allConn),nbins);
 for i= 1:length(allConn)
-    for e = 1%:length(elecGroup)
+    for e = 1:length(elecGroup)
         Gconn = squeeze(allConn{i}(1,e,:));
         dist = sqrt((angl_dist(loc.azi(elecGroup(e)),loc.azi,'a')).^2+(angl_dist(loc.ele(elecGroup(e)),loc.ele,'e')).^2);
         fitx = cos((dist/180)*pi);
@@ -889,7 +933,6 @@ for i= 1:length(allConn)
         mean_binY2(i,:) = nanmean(mean_binY1,1);
     end
 end
-
 if(medianFlag)
     median_binned_binY = nanmedian(mean_binY2,1);
     mSEM = @(data)std(bootstrp(1000,@nanmedian,data));
@@ -897,9 +940,7 @@ else
     median_binned_binY = nanmean(mean_binY2,1);
     mSEM = @(data)std(bootstrp(1000,@nanmean,data));
 end
-
 std_binned_binY = mSEM(mean_binY2);
-
 if(plotSwitch)
     if(length(std_binned_binY)==1)
         h = errorbar(binned_binX,median_binned_binY,nan(1,8),connectDiscrete,'Color',colorMrkr,'MarkerFaceColor','w','LineWidth',1.5,'HandleVisibility',DiscreteVisibility);
@@ -935,17 +976,16 @@ end
 end
 function out = selectCases(dataForDisplayAllGroups,goodCases)
 out = dataForDisplayAllGroups;
-    for freqB = 1:3
-        out{freqB}.logBLPowerVsFreqAllSubjects = dataForDisplayAllGroups{freqB}.logBLPowerVsFreqAllSubjects(goodCases,:); % {5×3 cell}
-        out{freqB}.logSTPowerVsFreqAllSubjects = dataForDisplayAllGroups{freqB}.logSTPowerVsFreqAllSubjects(goodCases,:); %{5×3 cell}
-        out{freqB}.diffPowerAllSubjects = dataForDisplayAllGroups{freqB}.diffPowerAllSubjects(goodCases); % {5×1 cell}
-        out{freqB}.diffPowerTopoAllSubjects = dataForDisplayAllGroups{freqB}.diffPowerTopoAllSubjects(goodCases); % {5×1 cell}
-        out{freqB}.stPowerTopoAllSubjects = dataForDisplayAllGroups{freqB}.stPowerTopoAllSubjects(goodCases); % {5×1 cell}
-        out{freqB}.connAllSubjects = dataForDisplayAllGroups{freqB}.connAllSubjects(goodCases,:); % {5×3 cell}
-        out{freqB}.connFreqBandsAllSubjects = dataForDisplayAllGroups{freqB}.connFreqBandsAllSubjects(goodCases,:); % {5×3 cell}
-    end
+out.logBLPowerVsFreqAllSubjects = dataForDisplayAllGroups.logBLPowerVsFreqAllSubjects(goodCases,:); % {5×3 cell}
+out.logSTPowerVsFreqAllSubjects = dataForDisplayAllGroups.logSTPowerVsFreqAllSubjects(goodCases,:); %{5×3 cell}
+out.diffPowerAllSubjects = dataForDisplayAllGroups.diffPowerAllSubjects(goodCases); % {5×1 cell}
+out.diffPowerTopoAllSubjects = dataForDisplayAllGroups.diffPowerTopoAllSubjects(goodCases); % {5×1 cell}
+out.stPowerTopoAllSubjects = dataForDisplayAllGroups.stPowerTopoAllSubjects(goodCases); % {5×1 cell}
+out.connAllSubjects = dataForDisplayAllGroups.connAllSubjects(goodCases,:); % {5×3 cell}
+out.connFreqBandsAllSubjects = dataForDisplayAllGroups.connFreqBandsAllSubjects(goodCases,:); % {5×3 cell}
 end
 function loc = getElecLocAngles(chanlocs)
+azi = zeros(1,length(chanlocs)); ele = zeros(1,length(chanlocs));
 for e = 1:length(chanlocs)
     azi(e) = chanlocs(e).sph_theta;
     ele(e) = chanlocs(e).sph_phi;
