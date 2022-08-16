@@ -136,4 +136,5 @@ dataForDisplay.stPowerTopoAllSubjects = stPowerTopoAllSubjects;
 dataForDisplay.connAllSubjects = connAllSubjects;
 dataForDisplay.connFreqBandsAllSubjects = connFreqBandsAllSubjects;
 dataForDisplay.expDate = expDatesList;
+dataForDisplay.freqVals = freqVals; % adding "freqVals" for further use, directly from "dataForDisplay"
 end
