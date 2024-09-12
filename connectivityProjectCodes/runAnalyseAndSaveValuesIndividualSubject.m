@@ -50,8 +50,8 @@ end
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%% Save Analyzed Data %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 SFs = {[], 1}; % this is implemented on the data after loading (no separate files)
 connMethods = {'coh','plv','ppc'};
-for connCond = 1:length(connMethods)
-    for iSF = 1:2
+for connCond = 3 %1:length(connMethods)
+    for iSF = 1 %1:2
         spatialFrequenciesToRemove = SFs{iSF};
         connMethod = connMethods{connCond}; % coh, plv, ppc
         wb = waitbar(0,['Computing connectivity.. ' connMethod]);

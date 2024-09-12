@@ -33,8 +33,15 @@ if usableDataFlag && ~isempty(expDates) && strcmp(capType{1},'actiCap64')
         conn = getConnIndividualSubject(dataPost,connMethod,goodProtFlag);
         save(analysisDetailsFileConn,'conn','goodProtFlag','numGoodTrials');
     end
+
+    analysisDetailsFileConnBL = [analysisDetailsFileConn(1:end-4) '_bl.mat'];
+    if ~exist(analysisDetailsFileConnBL,'file')
+        conn = getConnIndividualSubject(dataPre,connMethod,goodProtFlag);
+        save(analysisDetailsFileConnBL,'conn','goodProtFlag','numGoodTrials');
+    end
 end
 end
+
 function [dataPost,dataPre,goodProtFlag,numGoodTrials]=getDataSingleSubjectFT(subjectName,expDates,protocolNames,refType,ftDataFolder,stRange,spatialFrequenciesToRemove)
 
 numSessions = length(expDates);
@@ -62,14 +69,15 @@ for i=1:numSessions
     end
     
     cfg        = [];
-    cfg.toilim = [-diff(stRange) 0]; % just to have data of same length in Pre, Post
+    cfg.toilim = [-diff(stRange) + 1/data.fsample 0]; % just to have data of same length in Pre, Post
     dataPre{i}   = ft_redefinetrial(cfg,data);
     
     cfg        = [];
-    cfg.toilim = stRange;
+    cfg.toilim = [stRange(1) + 1/data.fsample stRange(2)];
     dataPost{i}   = ft_redefinetrial(cfg,data);
 end
 end
+
 function [freqPost,freqPre]=getFreqData(dataPost,dataPre,goodProtFlag)
 
 numSessions = length(dataPost);
@@ -97,6 +105,7 @@ freqPost = eval(getCommandStr(length(freqPostList),'Post'));
 freqPre = eval(getCommandStr(length(freqPreList),'Pre'));
 
 end
+
 function commandStr = getCommandStr(numSessions,tag)
 
 commandStr = 'ft_freqgrandaverage(cfg,';
@@ -105,6 +114,7 @@ for i=1:numSessions
 end
 commandStr = [commandStr(1:end-1) ')'];
 end
+
 function connVsElec = getConnIndividualSubject(data,connMethod,goodProtFlag)
 
 badElecs_accum = [];
@@ -120,6 +130,7 @@ conn(totalBadElecs,:,:) = NaN;
 conn(:,totalBadElecs,:) = NaN;
 connVsElec = conn;
 end
+
 function conn_stat = getConnThisCondition(data,method)
 cfg              = [];
 cfg.method       = 'mtmfft';

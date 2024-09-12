@@ -1,12 +1,13 @@
 % This program combines analyzedData across subjects. If connMethod is
 % empty, it only returns the power values
 
-function dataForDisplay = combineAnalyzedDataConn(folderSourceString,subjectNameList,projectName,refType,protocolType,stRange,freqRanges,connMethod,removeMicroSaccadesFlag,spatialFrequenciesToRemove,useCleanData)
+function dataForDisplay = combineAnalyzedDataConn(folderSourceString,subjectNameList,projectName,refType,protocolType,stRange,freqRanges,connMethod,removeMicroSaccadesFlag,spatialFrequenciesToRemove,useCleanData,useBLConnData)
 
 if ~exist('stRange','var');         stRange = [0.25 0.75];              end
 if ~exist('removeMicroSaccadesFlag','var'); removeMicroSaccadesFlag=0;  end
 if ~exist('spatialFrequenciesToRemove','var'); spatialFrequenciesToRemove=[];  end
 if ~exist('useCleanData','var');    useCleanData=0;                     end
+if ~exist('useBLConnData','var');   useBLConnData=0;                    end
 
 analyzedDataFolder = fullfile(folderSourceString,'analyzedData',projectName,protocolType);
 
@@ -104,7 +105,11 @@ for iSub = 1:numSubjects
         
         % Compute connectivity measures also if needed
         if ~isempty(connMethod)
-            analysisDetailsFileConn = [analysisDetailsFile(1:end-4) '_' connMethod '.mat']; % for saving connectivity '_bl' before '.mat'
+            if useBLConnData
+                analysisDetailsFileConn = [analysisDetailsFile(1:end-4) '_' connMethod '_bl.mat']; % for saving connectivity '_bl' before '.mat'
+            else
+                analysisDetailsFileConn = [analysisDetailsFile(1:end-4) '_' connMethod '.mat'];
+            end
             analyzedDataConn = load(analysisDetailsFileConn);
             
             % removing '1' from reference related (x,x) combination
